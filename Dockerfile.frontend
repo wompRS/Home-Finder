@@ -17,4 +17,4 @@ COPY --from=deps /app/package*.json ./
 RUN npm install --omit=dev
 
 EXPOSE 4173
-CMD [\"node\", \"./build/index.js\"]
+CMD ["node", "./build/index.js"]
