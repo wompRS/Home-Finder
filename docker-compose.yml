@@ -1,0 +1,49 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: homefinder-db
+    environment:
+      POSTGRES_DB: homefinder
+      POSTGRES_USER: homefinder
+      POSTGRES_PASSWORD: homefinder
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U homefinder"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: homefinder-api
+    environment:
+      PORT: 8080
+      DATABASE_URL: postgres://homefinder:homefinder@db:5432/homefinder?sslmode=disable
+      VISION_API_KEY: ${VISION_API_KEY-}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: homefinder-frontend
+    environment:
+      VITE_API_BASE: http://api:8080
+      PORT: 4173
+    depends_on:
+      api:
+        condition: service_started
+    ports:
+      - "4173:4173"
+
+volumes:
+  db_data:
