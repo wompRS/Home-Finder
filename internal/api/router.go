@@ -3,12 +3,12 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-
-	"home-finder/internal/types"
 )
 
 func NewRouter() http.Handler {
@@ -44,45 +44,12 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func searchHandler(w http.ResponseWriter, r *http.Request) {
-	sample := []types.Listing{
-		{
-			ID:           "demo-001",
-			Title:        "Bright Modern Loft",
-			Price:        489000,
-			Address:      "123 Mint Ave",
-			City:         "Portland",
-			State:        "OR",
-			Zip:          "97204",
-			Beds:         2,
-			Baths:        2,
-			Sqft:         1200,
-			LotSqft:      0,
-			PropertyType: "Condo",
-			PhotoURL:     "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80",
-			Tags:         []string{"open layout", "city view", "hardwood"},
-			Source:       "demo",
-		},
-		{
-			ID:           "demo-002",
-			Title:        "Calm Charcoal Craftsman",
-			Price:        729000,
-			Address:      "456 Grove St",
-			City:         "Seattle",
-			State:        "WA",
-			Zip:          "98101",
-			Beds:         3,
-			Baths:        2.5,
-			Sqft:         1850,
-			LotSqft:      4000,
-			PropertyType: "Single Family",
-			PhotoURL:     "https://images.unsplash.com/photo-1616594039964-c2c5bea0b2f9?auto=format&fit=crop&w=1200&q=80",
-			Tags:         []string{"front porch", "garden", "detached garage"},
-			Source:       "demo",
-		},
-	}
+	filters := parseFilters(r)
+	results := filterListings(filters)
+
 	writeJSON(w, http.StatusOK, map[string]any{
-		"results": sample,
-		"total":   len(sample),
+		"results": results,
+		"total":   len(results),
 	})
 }
 
@@ -90,4 +57,46 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(v)
+}
+
+func parseFilters(r *http.Request) SearchFilters {
+	q := r.URL.Query()
+
+	toInt := func(key string) int {
+		val := q.Get(key)
+		if val == "" {
+			return 0
+		}
+		n, _ := strconv.Atoi(val)
+		return n
+	}
+	toFloat := func(key string) float64 {
+		val := q.Get(key)
+		if val == "" {
+			return 0
+		}
+		f, _ := strconv.ParseFloat(val, 64)
+		return f
+	}
+
+	tagsRaw := q.Get("tags")
+	var tags []string
+	if tagsRaw != "" {
+		parts := strings.Split(tagsRaw, ",")
+		for _, p := range parts {
+			p = strings.TrimSpace(p)
+			if p != "" {
+				tags = append(tags, p)
+			}
+		}
+	}
+
+	return SearchFilters{
+		MinPrice:     toInt("min_price"),
+		MaxPrice:     toInt("max_price"),
+		MinBeds:      toInt("min_beds"),
+		MinBaths:     toFloat("min_baths"),
+		PropertyType: q.Get("property_type"),
+		Tags:         tags,
+	}
 }
