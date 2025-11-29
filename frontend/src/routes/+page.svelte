@@ -1,27 +1,9 @@
 <script lang="ts">
+  import type { Listing } from './+page';
   import { onMount } from 'svelte';
 
-  type Listing = {
-    id: string;
-    title: string;
-    price: number;
-    address: string;
-    city: string;
-    state: string;
-    zip: string;
-    beds: number;
-    baths: number;
-    sqft: number;
-    lotSqft: number;
-    propertyType: string;
-    photoUrl: string;
-    tags: string[];
-    source: string;
-  };
-
-  const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8080';
-
   export let data: { listings: Listing[] };
+
   let listings: Listing[] = data?.listings ?? [];
   let loading = false;
   let error = '';
@@ -32,20 +14,29 @@
     minBeds: '',
     minBaths: '',
     propertyType: '',
-    tags: ''
+    tags: '',
+    city: '',
+    state: '',
+    zip: '',
+    query: '',
+    minSqft: ''
   };
 
+  const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8080';
   const propertyTypes = ['Single Family', 'Condo', 'Townhouse', 'Multi-family', 'Land'];
 
   const activeFilters = () => {
     const chips: string[] = [];
-    if (filters.minPrice || filters.maxPrice) {
-      chips.push(`$${filters.minPrice || '0'} - $${filters.maxPrice || 'any'}`);
-    }
+    if (filters.minPrice || filters.maxPrice) chips.push(`$${filters.minPrice || '0'} - $${filters.maxPrice || 'any'}`);
     if (filters.minBeds) chips.push(`${filters.minBeds}+ beds`);
     if (filters.minBaths) chips.push(`${filters.minBaths}+ baths`);
     if (filters.propertyType) chips.push(filters.propertyType);
+    if (filters.city) chips.push(`City: ${filters.city}`);
+    if (filters.state) chips.push(`State: ${filters.state}`);
+    if (filters.zip) chips.push(`ZIP: ${filters.zip}`);
+    if (filters.minSqft) chips.push(`${filters.minSqft}+ sqft`);
     if (filters.tags) chips.push(`tags: ${filters.tags}`);
+    if (filters.query) chips.push(`search: ${filters.query}`);
     return chips;
   };
 
@@ -57,6 +48,11 @@
     if (filters.minBaths) params.set('min_baths', filters.minBaths);
     if (filters.propertyType) params.set('property_type', filters.propertyType);
     if (filters.tags) params.set('tags', filters.tags);
+    if (filters.city) params.set('city', filters.city);
+    if (filters.state) params.set('state', filters.state);
+    if (filters.zip) params.set('zip', filters.zip);
+    if (filters.query) params.set('q', filters.query);
+    if (filters.minSqft) params.set('min_sqft', filters.minSqft);
     return params.toString();
   };
 
@@ -85,15 +81,15 @@
     <div class="absolute inset-0 bg-hero opacity-70"></div>
     <div class="absolute inset-0 bg-gradient-to-r from-charcoal via-slate/80 to-charcoal"></div>
     <div class="relative mx-auto flex max-w-6xl flex-col gap-6 px-6 py-16">
-      <div class="grid gap-10 lg:grid-cols-[1.2fr,1fr] lg:items-center">
+      <div class="grid gap-10 lg:grid-cols-[1.2fr,1fr] lg:items-start">
         <div class="space-y-4">
           <p class="text-sm uppercase tracking-[0.2em] text-mint">Home Finder</p>
           <h1 class="font-heading text-4xl font-semibold text-white sm:text-5xl">
             Modern, AI-assisted real estate search
           </h1>
           <p class="text-lg text-sand/80">
-            Describe what you want—price, beds, type, must-have features—and we’ll surface listings that actually fit.
-            We auto-tag photos when text is sparse, no uploads needed.
+            Describe what you want—price, beds, type, location, must-have features—and we’ll surface listings that
+            actually fit. We auto-tag photos when text is sparse, no uploads needed.
           </p>
           <div class="flex gap-3 text-sm text-sand/70">
             <span class="flex items-center gap-2 rounded-full border border-mint/30 bg-mint/10 px-3 py-1 text-mint">AI vision tags</span>
@@ -109,7 +105,20 @@
             </div>
             <button
               class="text-sm text-sand/60 underline decoration-mint/60 decoration-2 underline-offset-4"
-              on:click={() => (filters = { minPrice: '', maxPrice: '', minBeds: '', minBaths: '', propertyType: '', tags: '' })}
+              on:click={() =>
+                (filters = {
+                  minPrice: '',
+                  maxPrice: '',
+                  minBeds: '',
+                  minBaths: '',
+                  propertyType: '',
+                  tags: '',
+                  city: '',
+                  state: '',
+                  zip: '',
+                  query: '',
+                  minSqft: ''
+                })}
             >
               Reset
             </button>
@@ -156,6 +165,43 @@
                 bind:value={filters.minBaths}
               />
             </label>
+            <label class="flex flex-col gap-2 text-sm text-sand/80">
+              City
+              <input
+                type="text"
+                placeholder="Austin"
+                class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none"
+                bind:value={filters.city}
+              />
+            </label>
+            <label class="flex flex-col gap-2 text-sm text-sand/80">
+              State
+              <input
+                type="text"
+                placeholder="TX"
+                class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none"
+                bind:value={filters.state}
+              />
+            </label>
+            <label class="flex flex-col gap-2 text-sm text-sand/80">
+              ZIP / area code
+              <input
+                type="text"
+                placeholder="78704"
+                class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none"
+                bind:value={filters.zip}
+              />
+            </label>
+            <label class="flex flex-col gap-2 text-sm text-sand/80">
+              Min sqft
+              <input
+                type="number"
+                min="0"
+                placeholder="1200"
+                class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none"
+                bind:value={filters.minSqft}
+              />
+            </label>
             <label class="flex flex-col gap-2 text-sm text-sand/80 md:col-span-2">
               Property type
               <select
@@ -175,6 +221,15 @@
                 placeholder="garage, natural light, balcony"
                 class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none"
                 bind:value={filters.tags}
+              />
+            </label>
+            <label class="flex flex-col gap-2 text-sm text-sand/80 md:col-span-2">
+              Keywords (title/address/features)
+              <input
+                type="text"
+                placeholder="craftsman, lake view, fenced yard"
+                class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none"
+                bind:value={filters.query}
               />
             </label>
           </div>
@@ -209,7 +264,7 @@
       <div>
         <p class="text-xs uppercase tracking-[0.2em] text-mint">Results</p>
         <h2 class="font-heading text-2xl font-semibold text-white">Handpicked matches</h2>
-        <p class="text-sand/60 text-sm">Click “Run search” after adjusting filters. Tags use AI from listing photos when needed.</p>
+        <p class="text-sand/60 text-sm">Run search after adjusting filters. Tags use AI from listing photos when needed.</p>
       </div>
       <div class="flex items-center gap-3 text-xs text-sand/60">
         <span class="rounded-full border border-white/10 bg-white/5 px-3 py-1">Live data (demo)</span>

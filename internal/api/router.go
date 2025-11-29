@@ -98,5 +98,9 @@ func parseFilters(r *http.Request) SearchFilters {
 		MinBaths:     toFloat("min_baths"),
 		PropertyType: q.Get("property_type"),
 		Tags:         tags,
+		City:         q.Get("city"),
+		State:        q.Get("state"),
+		Zip:          q.Get("zip"),
+		Query:        q.Get("q"),
 	}
 }

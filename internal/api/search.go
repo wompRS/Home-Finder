@@ -13,6 +13,10 @@ type SearchFilters struct {
 	MinBaths     float64
 	PropertyType string
 	Tags         []string
+	City         string
+	State        string
+	Zip          string
+	Query        string
 }
 
 // In-memory demo data; swap out with provider/DB later.
@@ -125,6 +129,18 @@ func filterListings(filters SearchFilters) []types.Listing {
 		if len(filters.Tags) > 0 && !hasAllTags(l.Tags, filters.Tags) {
 			continue
 		}
+		if filters.City != "" && !strings.Contains(strings.ToLower(l.City), strings.ToLower(filters.City)) {
+			continue
+		}
+		if filters.State != "" && !strings.EqualFold(l.State, filters.State) {
+			continue
+		}
+		if filters.Zip != "" && !strings.HasPrefix(l.Zip, filters.Zip) {
+			continue
+		}
+		if filters.Query != "" && !matchesQuery(l, filters.Query) {
+			continue
+		}
 		out = append(out, l)
 	}
 	return out
@@ -144,4 +160,26 @@ func hasAllTags(listingTags []string, required []string) bool {
 		}
 	}
 	return true
+}
+
+func matchesQuery(l types.Listing, q string) bool {
+	q = strings.ToLower(strings.TrimSpace(q))
+	if q == "" {
+		return true
+	}
+	fields := []string{
+		l.Title,
+		l.Address,
+		l.City,
+		l.State,
+		l.Zip,
+		l.PropertyType,
+		strings.Join(l.Tags, " "),
+	}
+	for _, f := range fields {
+		if strings.Contains(strings.ToLower(f), q) {
+			return true
+		}
+	}
+	return false
 }
