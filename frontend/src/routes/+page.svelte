@@ -124,6 +124,27 @@
     return limit ? cleaned.slice(0, limit) : cleaned;
   };
 
+  const enforceDigits = (event: Event, setter: (v: string) => void, limit?: number) => {
+    const input = event.currentTarget as HTMLInputElement;
+    const cleaned = digitsOnly(input.value, limit);
+    setter(cleaned);
+    if (input.value !== cleaned) input.value = cleaned;
+  };
+
+  const enforceDecimal = (event: Event, setter: (v: string) => void) => {
+    const input = event.currentTarget as HTMLInputElement;
+    const cleaned = digitsDot(input.value);
+    setter(cleaned);
+    if (input.value !== cleaned) input.value = cleaned;
+  };
+
+  const enforceAlpha = (event: Event, setter: (v: string) => void, limit?: number) => {
+    const input = event.currentTarget as HTMLInputElement;
+    const cleaned = alphaOnly(input.value, limit);
+    setter(cleaned);
+    if (input.value !== cleaned) input.value = cleaned;
+  };
+
   function addTag(tag: string) {
     const current = filters.tags.split(',').map((t) => t.trim()).filter(Boolean);
     if (!current.includes(tag)) {
@@ -196,37 +217,37 @@
 
           <div class="grid gap-4 md:grid-cols-2">
             <label class="flex flex-col gap-2 text-sm text-sand/80">Price min
-              <input type="number" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="450000" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minPrice} on:input={(e) => (filters.minPrice = digitsOnly(e.currentTarget.value))} />
+              <input type="number" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="450000" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minPrice} on:input={(e) => enforceDigits(e, (v) => (filters.minPrice = v))} />
             </label>
             <label class="flex flex-col gap-2 text-sm text-sand/80">Price max
-              <input type="number" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="1200000" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.maxPrice} on:input={(e) => (filters.maxPrice = digitsOnly(e.currentTarget.value))} />
+              <input type="number" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="1200000" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.maxPrice} on:input={(e) => enforceDigits(e, (v) => (filters.maxPrice = v))} />
             </label>
             <label class="flex flex-col gap-2 text-sm text-sand/80">Beds (min)
-              <input type="number" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="3" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minBeds} on:input={(e) => (filters.minBeds = digitsOnly(e.currentTarget.value))} />
+              <input type="number" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="3" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minBeds} on:input={(e) => enforceDigits(e, (v) => (filters.minBeds = v))} />
             </label>
             <label class="flex flex-col gap-2 text-sm text-sand/80">Baths (min)
-              <input type="number" min="0" step="0.5" inputmode="decimal" placeholder="2" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minBaths} on:input={(e) => (filters.minBaths = digitsDot(e.currentTarget.value))} />
+              <input type="number" min="0" step="0.5" inputmode="decimal" placeholder="2" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minBaths} on:input={(e) => enforceDecimal(e, (v) => (filters.minBaths = v))} />
             </label>
             <label class="flex flex-col gap-2 text-sm text-sand/80">Min sqft
-              <input type="number" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="1400" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minSqft} on:input={(e) => (filters.minSqft = digitsOnly(e.currentTarget.value))} />
+              <input type="number" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="1400" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minSqft} on:input={(e) => enforceDigits(e, (v) => (filters.minSqft = v))} />
             </label>
             <label class="flex flex-col gap-2 text-sm text-sand/80">Min lot sqft
-              <input type="number" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="5000" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minLotSqft} on:input={(e) => (filters.minLotSqft = digitsOnly(e.currentTarget.value))} />
+              <input type="number" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="5000" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minLotSqft} on:input={(e) => enforceDigits(e, (v) => (filters.minLotSqft = v))} />
             </label>
             <label class="flex flex-col gap-2 text-sm text-sand/80">Year built (min)
-              <input type="number" min="1900" inputmode="numeric" pattern="[0-9]*" placeholder="1990" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minYear} on:input={(e) => (filters.minYear = digitsOnly(e.currentTarget.value, 4))} />
+              <input type="number" min="1900" inputmode="numeric" pattern="[0-9]*" placeholder="1990" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minYear} on:input={(e) => enforceDigits(e, (v) => (filters.minYear = v), 4)} />
             </label>
             <label class="flex flex-col gap-2 text-sm text-sand/80">Year built (max)
-              <input type="number" min="1900" inputmode="numeric" pattern="[0-9]*" placeholder="2024" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.maxYear} on:input={(e) => (filters.maxYear = digitsOnly(e.currentTarget.value, 4))} />
+              <input type="number" min="1900" inputmode="numeric" pattern="[0-9]*" placeholder="2024" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.maxYear} on:input={(e) => enforceDigits(e, (v) => (filters.maxYear = v), 4)} />
             </label>
             <label class="flex flex-col gap-2 text-sm text-sand/80">Stories (min)
-              <input type="number" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="1" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minStories} on:input={(e) => (filters.minStories = digitsOnly(e.currentTarget.value))} />
+              <input type="number" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="1" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minStories} on:input={(e) => enforceDigits(e, (v) => (filters.minStories = v))} />
             </label>
             <label class="flex flex-col gap-2 text-sm text-sand/80">Garage spaces (min)
-              <input type="number" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="2" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minGarage} on:input={(e) => (filters.minGarage = digitsOnly(e.currentTarget.value))} />
+              <input type="number" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="2" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minGarage} on:input={(e) => enforceDigits(e, (v) => (filters.minGarage = v))} />
             </label>
             <label class="flex flex-col gap-2 text-sm text-sand/80">Max HOA ($/mo)
-              <input type="number" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="400" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.maxHOA} on:input={(e) => (filters.maxHOA = digitsOnly(e.currentTarget.value))} />
+              <input type="number" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="400" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.maxHOA} on:input={(e) => enforceDigits(e, (v) => (filters.maxHOA = v))} />
             </label>
             <div class="md:col-span-2">
               <p class="mb-2 text-sm text-sand/80">Property types</p>
@@ -242,10 +263,10 @@
               <input type="text" placeholder="Austin" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.city} />
             </label>
             <label class="flex flex-col gap-2 text-sm text-sand/80">State
-              <input type="text" placeholder="TX" maxlength="2" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.state} on:input={(e) => (filters.state = alphaOnly(e.currentTarget.value, 2).toUpperCase())} />
+              <input type="text" placeholder="TX" maxlength="2" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.state} on:input={(e) => enforceAlpha(e, (v) => (filters.state = v.toUpperCase()), 2)} />
             </label>
             <label class="flex flex-col gap-2 text-sm text-sand/80">ZIP / area code
-              <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="10" placeholder="78704" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.zip} on:input={(e) => (filters.zip = digitsOnly(e.currentTarget.value, 10))} />
+              <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="10" placeholder="78704" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.zip} on:input={(e) => enforceDigits(e, (v) => (filters.zip = v), 10)} />
             </label>
             <label class="flex flex-col gap-2 text-sm text-sand/80 md:col-span-2">Must-have tags (comma separated)
               <input type="text" placeholder="rv garage, pool, fenced yard" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.tags} />
