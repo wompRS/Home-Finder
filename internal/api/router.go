@@ -78,6 +78,14 @@ func parseFilters(r *http.Request) SearchFilters {
 		f, _ := strconv.ParseFloat(val, 64)
 		return f
 	}
+	toInt := func(key string) int {
+		val := q.Get(key)
+		if val == "" {
+			return 0
+		}
+		n, _ := strconv.Atoi(val)
+		return n
+	}
 
 	tagsRaw := q.Get("tags")
 	var tags []string
@@ -92,16 +100,32 @@ func parseFilters(r *http.Request) SearchFilters {
 	}
 
 	return SearchFilters{
-		MinPrice:     toInt("min_price"),
-		MaxPrice:     toInt("max_price"),
-		MinBeds:      toInt("min_beds"),
-		MinBaths:     toFloat("min_baths"),
-		PropertyType: q.Get("property_type"),
-		Tags:         tags,
-		City:         q.Get("city"),
-		State:        q.Get("state"),
-		Zip:          q.Get("zip"),
-		Query:        q.Get("q"),
-		UseVision:    boolFromString(q.Get("use_vision")),
+		MinPrice:         toInt("min_price"),
+		MaxPrice:         toInt("max_price"),
+		MinBeds:          toInt("min_beds"),
+		MinBaths:         toFloat("min_baths"),
+		MinSqft:          toInt("min_sqft"),
+		MinLotSqft:       toInt("min_lot_sqft"),
+		MinYearBuilt:     toInt("min_year_built"),
+		MaxYearBuilt:     toInt("max_year_built"),
+		MinStories:       toInt("min_stories"),
+		MinGarage:        toInt("min_garage"),
+		MaxHOA:           toInt("max_hoa"),
+		PropertyType:     q.Get("property_type"),
+		Tags:             tags,
+		City:             q.Get("city"),
+		State:            q.Get("state"),
+		Zip:              q.Get("zip"),
+		Query:            q.Get("q"),
+		UseVision:        boolFromString(q.Get("use_vision")),
+		RequirePool:      boolFromString(q.Get("pool")),
+		RequireWater:     boolFromString(q.Get("waterfront")),
+		RequireView:      boolFromString(q.Get("view")),
+		RequireBasement:  boolFromString(q.Get("basement")),
+		RequireFireplace: boolFromString(q.Get("fireplace")),
+		RequireADU:       boolFromString(q.Get("adu")),
+		RequireRVParking: boolFromString(q.Get("rv_parking")),
+		RequireNew:       boolFromString(q.Get("new_build")),
+		RequireFixer:     boolFromString(q.Get("fixer")),
 	}
 }
