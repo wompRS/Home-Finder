@@ -1,11 +1,15 @@
 import express from 'express';
-import { chromium } from 'playwright';
+import { chromium, devices } from 'playwright';
 import { LRUCache } from 'lru-cache';
 
 const PORT = process.env.PORT || 3001;
 const AUTH = process.env.SCRAPER_TOKEN || '';
 const MAX_RESULTS = Number(process.env.SCRAPER_MAX_RESULTS || 40);
 const HEADLESS = process.env.HEADLESS !== 'false';
+const DEFAULT_PROVIDER = process.env.SCRAPER_DEFAULT_PROVIDER || 'zillow'; // zillow|redfin|realtor
+const USER_AGENT =
+  process.env.SCRAPER_UA ||
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 
 const app = express();
 const cache = new LRUCache({ max: 100, ttl: 5 * 60 * 1000 });
@@ -27,28 +31,40 @@ app.get('/search', async (req, res) => {
   const key = req.url;
   if (cache.has(key)) return res.json({ results: cache.get(key), cached: true });
 
-  const targetUrl = buildTargetUrl(req.query);
+  const provider = normalizeProvider(req.query.provider);
+  const targetUrl = buildTargetUrl(req.query, provider);
   if (!targetUrl) return res.status(400).json({ error: 'missing location (city/state or zip or q)' });
 
   try {
     const browser = await chromium.launch({ headless: HEADLESS });
-    const page = await browser.newPage({
-      viewport: { width: 1280, height: 720 },
-      userAgent:
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    const context = await browser.newContext({
+      ...devices['Desktop Chrome'],
+      userAgent: USER_AGENT,
+      viewport: { width: 1440, height: 900 },
+      javaScriptEnabled: true,
     });
+    const page = await context.newPage();
+
+    attachLogging(page, provider);
 
     await page.goto(targetUrl, { waitUntil: 'load', timeout: 60000 });
     await page.waitForTimeout(3000);
-    await autoScroll(page, 2);
-    await page.waitForSelector('[data-testid="property-card"]', { timeout: 20000 }).catch(() => {});
+    await autoScroll(page, 3);
 
-    const results = await extractZillowCards(page, MAX_RESULTS);
+    let results = [];
+    if (provider === 'redfin') {
+      results = await extractRedfinCards(page, MAX_RESULTS);
+    } else if (provider === 'realtor') {
+      results = await extractRealtorCards(page, MAX_RESULTS);
+    } else {
+      await page.waitForSelector('[data-testid="property-card"]', { timeout: 20000 }).catch(() => {});
+      results = await extractZillowCards(page, MAX_RESULTS);
+    }
     await browser.close();
 
     const finalResults = results.length ? results : demoFallback(req.query);
     cache.set(key, finalResults);
-    res.json({ results: finalResults, source: results.length ? 'scraped' : 'fallback' });
+    res.json({ results: finalResults, source: results.length ? provider : 'fallback' });
   } catch (err) {
     console.error('scrape error', err);
     res.status(500).json({ error: 'scrape failed', detail: err.message });
@@ -59,12 +75,31 @@ app.listen(PORT, () => {
   console.log(`Scraper listening on :${PORT}`);
 });
 
-function buildTargetUrl(q) {
+function normalizeProvider(raw) {
+  const val = (raw || DEFAULT_PROVIDER || 'zillow').toString().toLowerCase();
+  if (['zillow', 'redfin', 'realtor'].includes(val)) return val;
+  return 'zillow';
+}
+
+function buildTargetUrl(q, provider = 'zillow') {
   const city = (q.city || '').trim();
   const state = (q.state || '').trim();
   const zip = (q.zip || '').trim();
   const query = (q.q || '').trim();
 
+  if (provider === 'redfin') {
+    if (zip) return `https://www.redfin.com/zipcode/${encodeURIComponent(zip)}`;
+    if (city && state) return `https://www.redfin.com/city/${encodeURIComponent(state)}/${encodeURIComponent(city)}`;
+    if (query) return `https://www.redfin.com/stingray/do/location-autocomplete?location=${encodeURIComponent(query)}`;
+  }
+
+  if (provider === 'realtor') {
+    if (zip) return `https://www.realtor.com/realestateandhomes-search/${encodeURIComponent(zip)}`;
+    if (city && state) return `https://www.realtor.com/realestateandhomes-search/${encodeURIComponent(city)}_${encodeURIComponent(state)}`;
+    if (query) return `https://www.realtor.com/realestateandhomes-search/${encodeURIComponent(query)}`;
+  }
+
+  // default zillow
   if (zip) return `https://www.zillow.com/homes/${encodeURIComponent(zip)}_rb/`;
   if (city && state) return `https://www.zillow.com/homes/${encodeURIComponent(city)}-${encodeURIComponent(state)}/`;
   if (query) return `https://www.zillow.com/homes/${encodeURIComponent(query)}/`;
@@ -73,8 +108,8 @@ function buildTargetUrl(q) {
 
 async function autoScroll(page, passes = 2) {
   for (let i = 0; i < passes; i++) {
-    await page.mouse.wheel(0, 1500);
-    await page.waitForTimeout(800);
+    await page.mouse.wheel(0, 1800);
+    await page.waitForTimeout(1200 + Math.random() * 600);
   }
 }
 
@@ -152,6 +187,126 @@ async function extractZillowCards(page, limit) {
     }
     return c;
   });
+}
+
+async function extractRedfinCards(page, limit) {
+  // Redfin uses dynamic scripts; target card-like containers with data-rf-test-id
+  const cards = await page.$$eval('[data-rf-test-id=\"abp-card\"]', (nodes, limitInner) => {
+    const toNumber = (txt) => {
+      if (!txt) return 0;
+      const digits = txt.replace(/[^0-9.]/g, '');
+      return Number(digits || 0);
+    };
+    return nodes.slice(0, limitInner).map((node) => {
+      const price = node.querySelector('[data-rf-test-id=\"abp-price\"]')?.textContent || '';
+      const address = node.querySelector('[data-rf-test-id=\"abp-streetLine\"]')?.textContent || '';
+      const cityStateZip = node.querySelector('[data-rf-test-id=\"abp-cityStateZip\"]')?.textContent || '';
+      const meta = node.querySelector('[data-rf-test-id=\"abp-beds\"]')?.textContent || '';
+      const baths = node.querySelector('[data-rf-test-id=\"abp-baths\"]')?.textContent || '';
+      const sqft = node.querySelector('[data-rf-test-id=\"abp-sqFt\"]')?.textContent || '';
+      const link = node.querySelector('a')?.getAttribute('href') || '';
+      const img =
+        node.querySelector('img')?.getAttribute('src') ||
+        node.querySelector('img')?.getAttribute('data-src') ||
+        '';
+      const idMatch = link.match(/\/home\/([^\/]+)/);
+
+      const [city = '', state = '', zip = ''] = (cityStateZip || '').split(',').map((p) => p.trim().replace(/\s+/g, ' '));
+
+      return {
+        id: idMatch ? idMatch[1] : link || Math.random().toString(36).slice(2),
+        title: price?.trim() || 'Listing',
+        price: toNumber(price),
+        address,
+        city,
+        state,
+        zip: zip.split(' ').pop() || '',
+        beds: toNumber(meta),
+        baths: baths ? parseFloat((baths.match(/[0-9.]+/) || [0])[0]) : 0,
+        sqft: toNumber(sqft),
+        lotSqft: 0,
+        yearBuilt: 0,
+        stories: 0,
+        garageSpaces: 0,
+        hasRvParking: false,
+        hasPool: false,
+        hasWaterfront: false,
+        hasView: false,
+        hasBasement: false,
+        hasFireplace: false,
+        isNewBuild: false,
+        isFixer: false,
+        hasAdu: false,
+        hoaFee: 0,
+        propertyType: '',
+        photoUrl: img,
+        tags: [],
+        visionTags: [],
+        source: 'redfin-scraper',
+      };
+    });
+  }, limit);
+  return cards;
+}
+
+async function extractRealtorCards(page, limit) {
+  const cards = await page.$$eval('[data-testid=\"result-card\"]', (nodes, limitInner) => {
+    const toNumber = (txt) => {
+      if (!txt) return 0;
+      const digits = txt.replace(/[^0-9.]/g, '');
+      return Number(digits || 0);
+    };
+    const normalizeText = (el, sel) => (el.querySelector(sel)?.textContent || '').trim();
+    return nodes.slice(0, limitInner).map((node) => {
+      const price = normalizeText(node, '[data-testid=\"card-price\"]');
+      const address = normalizeText(node, '[data-testid=\"card-address-1\"]');
+      const cityStateZip = normalizeText(node, '[data-testid=\"card-address-2\"]');
+      const beds = normalizeText(node, '[data-testid=\"property-meta-beds\"]');
+      const baths = normalizeText(node, '[data-testid=\"property-meta-baths\"]');
+      const sqft = normalizeText(node, '[data-testid=\"property-meta-sqft\"]');
+      const link = node.querySelector('a')?.getAttribute('href') || '';
+      const img =
+        node.querySelector('img')?.getAttribute('src') ||
+        node.querySelector('img')?.getAttribute('data-src') ||
+        '';
+
+      const [city = '', rest = ''] = (cityStateZip || '').split(',').map((p) => p.trim());
+      const [state = '', zip = ''] = rest.split(' ').filter(Boolean);
+
+      return {
+        id: link || Math.random().toString(36).slice(2),
+        title: price || 'Listing',
+        price: toNumber(price),
+        address,
+        city,
+        state,
+        zip,
+        beds: toNumber(beds),
+        baths: baths ? parseFloat((baths.match(/[0-9.]+/) || [0])[0]) : 0,
+        sqft: toNumber(sqft),
+        lotSqft: 0,
+        yearBuilt: 0,
+        stories: 0,
+        garageSpaces: 0,
+        hasRvParking: false,
+        hasPool: false,
+        hasWaterfront: false,
+        hasView: false,
+        hasBasement: false,
+        hasFireplace: false,
+        isNewBuild: false,
+        isFixer: false,
+        hasAdu: false,
+        hoaFee: 0,
+        propertyType: '',
+        photoUrl: img,
+        tags: [],
+        visionTags: [],
+        source: 'realtor-scraper',
+      };
+    });
+  }, limit);
+  return cards;
 }
 
 function demoFallback(q) {
@@ -314,4 +469,26 @@ function demoFallback(q) {
       source: 'fallback',
     },
   ];
+}
+
+function attachLogging(page, provider) {
+  const start = Date.now();
+  page.on('response', (resp) => {
+    if (resp.status() >= 400) {
+      console.warn(
+        `[${provider}] HTTP ${resp.status()} ${resp.url().slice(0, 120)} took ${resp.timing().responseEnd || 0}ms`
+      );
+    }
+  });
+  page.on('requestfailed', (req) => {
+    console.warn(`[${provider}] request failed ${req.url().slice(0, 120)} reason=${req.failure()?.errorText}`);
+  });
+  page.on('console', (msg) => {
+    if (['error', 'warning'].includes(msg.type())) {
+      console.warn(`[${provider}] console ${msg.type()}: ${msg.text()}`);
+    }
+  });
+  page.on('load', () => {
+    console.info(`[${provider}] page load in ${Date.now() - start}ms`);
+  });
 }
