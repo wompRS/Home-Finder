@@ -8,6 +8,8 @@
   let loading = false;
   let error = '';
 
+  const propertyOptions = ['Single Family', 'Condo', 'Townhouse', 'Multi-family', 'Land'];
+
   let filters = {
     minPrice: '',
     maxPrice: '',
@@ -20,8 +22,9 @@
     minStories: '',
     minGarage: '',
     maxHOA: '',
-    propertyType: '',
+    propertyTypes: Object.fromEntries(propertyOptions.map((p) => [p, false])) as Record<string, boolean>,
     tags: '',
+    excludeTags: '',
     city: '',
     state: '',
     zip: '',
@@ -39,8 +42,10 @@
   };
 
   const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8080';
-  const propertyTypes = ['Single Family', 'Condo', 'Townhouse', 'Multi-family', 'Land'];
   const popularTags = ['rv garage', 'pool', 'fenced yard', 'balcony', 'waterfront', 'mountain view', 'guest house'];
+  const commonExcludes = ['hoa', 'shared walls', 'street parking'];
+
+  const selectedTypes = () => propertyOptions.filter((p) => filters.propertyTypes[p]);
 
   const activeFilters = () => {
     const chips: string[] = [];
@@ -53,11 +58,12 @@
     if (filters.minStories) chips.push(`${filters.minStories}+ stories`);
     if (filters.minGarage) chips.push(`${filters.minGarage}+ garage`);
     if (filters.maxHOA) chips.push(`HOA <= $${filters.maxHOA}`);
-    if (filters.propertyType) chips.push(filters.propertyType);
+    selectedTypes().forEach((t) => chips.push(t));
     if (filters.city) chips.push(`City: ${filters.city}`);
     if (filters.state) chips.push(`State: ${filters.state}`);
     if (filters.zip) chips.push(`ZIP: ${filters.zip}`);
     if (filters.tags) chips.push(`tags: ${filters.tags}`);
+    if (filters.excludeTags) chips.push(`exclude: ${filters.excludeTags}`);
     if (filters.query) chips.push(`search: ${filters.query}`);
     ['pool', 'waterfront', 'view', 'basement', 'fireplace', 'adu', 'rvParking', 'newBuild', 'fixer'].forEach((key) => {
       if ((filters as any)[key]) chips.push(key.replace(/([A-Z])/g, ' $1').toLowerCase());
@@ -79,8 +85,10 @@
     if (filters.minStories) params.set('min_stories', filters.minStories);
     if (filters.minGarage) params.set('min_garage', filters.minGarage);
     if (filters.maxHOA) params.set('max_hoa', filters.maxHOA);
-    if (filters.propertyType) params.set('property_type', filters.propertyType);
+    const types = selectedTypes();
+    if (types.length) params.set('property_types', types.join(','));
     if (filters.tags) params.set('tags', filters.tags);
+    if (filters.excludeTags) params.set('exclude_tags', filters.excludeTags);
     if (filters.city) params.set('city', filters.city);
     if (filters.state) params.set('state', filters.state);
     if (filters.zip) params.set('zip', filters.zip);
@@ -106,6 +114,14 @@
     }
   }
 
+  function addExclude(tag: string) {
+    const current = filters.excludeTags.split(',').map((t) => t.trim()).filter(Boolean);
+    if (!current.includes(tag)) {
+      current.push(tag);
+      filters.excludeTags = current.join(', ');
+    }
+  }
+
   async function runSearch() {
     loading = true;
     error = '';
@@ -123,6 +139,39 @@
     }
   }
 
+  function resetFilters() {
+    filters = {
+      minPrice: '',
+      maxPrice: '',
+      minBeds: '',
+      minBaths: '',
+      minSqft: '',
+      minLotSqft: '',
+      minYear: '',
+      maxYear: '',
+      minStories: '',
+      minGarage: '',
+      maxHOA: '',
+      propertyTypes: Object.fromEntries(propertyOptions.map((p) => [p, false])) as Record<string, boolean>,
+      tags: '',
+      excludeTags: '',
+      city: '',
+      state: '',
+      zip: '',
+      query: '',
+      useVision: true,
+      pool: false,
+      waterfront: false,
+      view: false,
+      basement: false,
+      fireplace: false,
+      adu: false,
+      rvParking: false,
+      newBuild: false,
+      fixer: false
+    };
+  }
+
   onMount(runSearch);
 </script>
 
@@ -134,12 +183,10 @@
       <div class="grid gap-10 lg:grid-cols-[1.2fr,1fr] lg:items-start">
         <div class="space-y-4">
           <p class="text-sm uppercase tracking-[0.2em] text-mint">Home Finder</p>
-          <h1 class="font-heading text-4xl font-semibold text-white sm:text-5xl">
-            Modern, AI-assisted real estate search
-          </h1>
+          <h1 class="font-heading text-4xl font-semibold text-white sm:text-5xl">Modern, AI-assisted real estate search</h1>
           <p class="text-lg text-sand/80">
-            Robust filters plus AI vision verification for obvious visual features (garage/driveway, stories, pool,
-            yard, waterfront/view, RV parking, ADU, etc.).
+            Deep filters plus AI vision verification for obvious visual features (garage/driveway, stories, pool, yard,
+            waterfront/view, RV parking, ADU, etc.).
           </p>
           <div class="flex gap-3 text-sm text-sand/70">
             <span class="flex items-center gap-2 rounded-full border border-mint/30 bg-mint/10 px-3 py-1 text-mint">AI vision tags</span>
@@ -153,110 +200,65 @@
               <p class="text-xs uppercase tracking-[0.2em] text-mint/80">Filters</p>
               <p class="font-heading text-xl font-semibold text-white">Dial in your search</p>
             </div>
-            <button
-              class="text-sm text-sand/60 underline decoration-mint/60 decoration-2 underline-offset-4"
-              on:click={() =>
-                (filters = {
-                  minPrice: '',
-                  maxPrice: '',
-                  minBeds: '',
-                  minBaths: '',
-                  minSqft: '',
-                  minLotSqft: '',
-                  minYear: '',
-                  maxYear: '',
-                  minStories: '',
-                  minGarage: '',
-                  maxHOA: '',
-                  propertyType: '',
-                  tags: '',
-                  city: '',
-                  state: '',
-                  zip: '',
-                  query: '',
-                  useVision: true,
-                  pool: false,
-                  waterfront: false,
-                  view: false,
-                  basement: false,
-                  fireplace: false,
-                  adu: false,
-                  rvParking: false,
-                  newBuild: false,
-                  fixer: false
-                })}
-            >
+            <button class="text-sm text-sand/60 underline decoration-mint/60 decoration-2 underline-offset-4" on:click={resetFilters}>
               Reset
             </button>
           </div>
+
           <div class="grid gap-4 md:grid-cols-2">
-            <label class="flex flex-col gap-2 text-sm text-sand/80">
-              Price min
+            <label class="flex flex-col gap-2 text-sm text-sand/80">Price min
               <input type="number" min="0" placeholder="450000" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minPrice} />
             </label>
-            <label class="flex flex-col gap-2 text-sm text-sand/80">
-              Price max
+            <label class="flex flex-col gap-2 text-sm text-sand/80">Price max
               <input type="number" min="0" placeholder="1200000" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.maxPrice} />
             </label>
-            <label class="flex flex-col gap-2 text-sm text-sand/80">
-              Beds (min)
+            <label class="flex flex-col gap-2 text-sm text-sand/80">Beds (min)
               <input type="number" min="0" placeholder="3" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minBeds} />
             </label>
-            <label class="flex flex-col gap-2 text-sm text-sand/80">
-              Baths (min)
+            <label class="flex flex-col gap-2 text-sm text-sand/80">Baths (min)
               <input type="number" min="0" step="0.5" placeholder="2" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minBaths} />
             </label>
-            <label class="flex flex-col gap-2 text-sm text-sand/80">
-              Min sqft
+            <label class="flex flex-col gap-2 text-sm text-sand/80">Min sqft
               <input type="number" min="0" placeholder="1400" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minSqft} />
             </label>
-            <label class="flex flex-col gap-2 text-sm text-sand/80">
-              Min lot sqft
+            <label class="flex flex-col gap-2 text-sm text-sand/80">Min lot sqft
               <input type="number" min="0" placeholder="5000" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minLotSqft} />
             </label>
-            <label class="flex flex-col gap-2 text-sm text-sand/80">
-              Year built (min)
+            <label class="flex flex-col gap-2 text-sm text-sand/80">Year built (min)
               <input type="number" min="1900" placeholder="1990" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minYear} />
             </label>
-            <label class="flex flex-col gap-2 text-sm text-sand/80">
-              Year built (max)
+            <label class="flex flex-col gap-2 text-sm text-sand/80">Year built (max)
               <input type="number" min="1900" placeholder="2024" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.maxYear} />
             </label>
-            <label class="flex flex-col gap-2 text-sm text-sand/80">
-              Stories (min)
+            <label class="flex flex-col gap-2 text-sm text-sand/80">Stories (min)
               <input type="number" min="0" placeholder="1" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minStories} />
             </label>
-            <label class="flex flex-col gap-2 text-sm text-sand/80">
-              Garage spaces (min)
+            <label class="flex flex-col gap-2 text-sm text-sand/80">Garage spaces (min)
               <input type="number" min="0" placeholder="2" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minGarage} />
             </label>
-            <label class="flex flex-col gap-2 text-sm text-sand/80">
-              Max HOA ($/mo)
+            <label class="flex flex-col gap-2 text-sm text-sand/80">Max HOA ($/mo)
               <input type="number" min="0" placeholder="400" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.maxHOA} />
             </label>
-            <label class="flex flex-col gap-2 text-sm text-sand/80">
-              Property type
-              <select class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.propertyType}>
-                <option value="">Any</option>
-                {#each propertyTypes as type}
-                  <option value={type}>{type}</option>
+            <div class="md:col-span-2">
+              <p class="mb-2 text-sm text-sand/80">Property types</p>
+              <div class="grid grid-cols-2 gap-2 text-sm text-sand/80">
+                {#each propertyOptions as type}
+                  <label class="flex items-center gap-2">
+                    <input type="checkbox" class="h-5 w-5 accent-mint" bind:checked={filters.propertyTypes[type]} />{type}
+                  </label>
                 {/each}
-              </select>
-            </label>
-            <label class="flex flex-col gap-2 text-sm text-sand/80">
-              City
+              </div>
+            </div>
+            <label class="flex flex-col gap-2 text-sm text-sand/80">City
               <input type="text" placeholder="Austin" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.city} />
             </label>
-            <label class="flex flex-col gap-2 text-sm text-sand/80">
-              State
+            <label class="flex flex-col gap-2 text-sm text-sand/80">State
               <input type="text" placeholder="TX" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.state} />
             </label>
-            <label class="flex flex-col gap-2 text-sm text-sand/80">
-              ZIP / area code
+            <label class="flex flex-col gap-2 text-sm text-sand/80">ZIP / area code
               <input type="text" placeholder="78704" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.zip} />
             </label>
-            <label class="flex flex-col gap-2 text-sm text-sand/80 md:col-span-2">
-              Must-have tags (comma separated)
+            <label class="flex flex-col gap-2 text-sm text-sand/80 md:col-span-2">Must-have tags (comma separated)
               <input type="text" placeholder="rv garage, pool, fenced yard" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.tags} />
               <div class="flex flex-wrap gap-2 text-xs text-sand/60">
                 {#each popularTags as tag}
@@ -266,8 +268,17 @@
                 {/each}
               </div>
             </label>
-            <label class="flex flex-col gap-2 text-sm text-sand/80 md:col-span-2">
-              Keywords (title/address/features)
+            <label class="flex flex-col gap-2 text-sm text-sand/80 md:col-span-2">Exclude tags
+              <input type="text" placeholder="hoa, shared walls" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.excludeTags} />
+              <div class="flex flex-wrap gap-2 text-xs text-sand/60">
+                {#each commonExcludes as tag}
+                  <button type="button" class="rounded-full border border-white/10 bg-white/5 px-3 py-1 transition hover:border-mint/40 hover:text-mint" on:click={() => addExclude(tag)}>
+                    × {tag}
+                  </button>
+                {/each}
+              </div>
+            </label>
+            <label class="flex flex-col gap-2 text-sm text-sand/80 md:col-span-2">Keywords (title/address/features)
               <input type="text" placeholder="craftsman, lake view, fenced yard" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.query} />
             </label>
             <div class="md:col-span-2 grid grid-cols-2 gap-3 text-sm text-sand/80">
@@ -284,9 +295,7 @@
             <div class="md:col-span-2 flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-4 py-3">
               <div>
                 <p class="text-sm font-semibold text-white">Use AI image verification</p>
-                <p class="text-xs text-sand/60">
-                  Verifies obvious visual features (pool, RV garage, stories, yard type, balcony) against photos when on.
-                </p>
+                <p class="text-xs text-sand/60">Verifies obvious visual features (pool, RV garage, stories, yard type, balcony) against photos when on.</p>
               </div>
               <label class="inline-flex cursor-pointer items-center gap-2 text-sm text-sand/80">
                 <input type="checkbox" class="h-5 w-5 accent-mint" bind:checked={filters.useVision} />
@@ -304,11 +313,7 @@
               {/if}
             </div>
             <button class="rounded-full border border-mint/40 bg-mint px-4 py-2 text-sm font-semibold text-charcoal transition hover:-translate-y-0.5 hover:shadow-card" on:click|preventDefault={runSearch} disabled={loading}>
-              {#if loading}
-                Searching...
-              {:else}
-                Run search
-              {/if}
+              {#if loading}Searching...{:else}Run search{/if}
             </button>
           </div>
         </div>
@@ -346,9 +351,7 @@
                 <span>{listing.propertyType}</span>
               </div>
               {#if filters.useVision}
-                <div class="absolute right-3 top-3 rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-charcoal">
-                  AI tags
-                </div>
+                <div class="absolute right-3 top-3 rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-charcoal">AI tags</div>
               {/if}
             </div>
             <div class="space-y-3 p-4">

@@ -78,25 +78,19 @@ func parseFilters(r *http.Request) SearchFilters {
 		f, _ := strconv.ParseFloat(val, 64)
 		return f
 	}
-	toInt := func(key string) int {
-		val := q.Get(key)
-		if val == "" {
-			return 0
+	parseList := func(raw string) []string {
+		if raw == "" {
+			return nil
 		}
-		n, _ := strconv.Atoi(val)
-		return n
-	}
-
-	tagsRaw := q.Get("tags")
-	var tags []string
-	if tagsRaw != "" {
-		parts := strings.Split(tagsRaw, ",")
+		parts := strings.Split(raw, ",")
+		var out []string
 		for _, p := range parts {
 			p = strings.TrimSpace(p)
 			if p != "" {
-				tags = append(tags, p)
+				out = append(out, p)
 			}
 		}
+		return out
 	}
 
 	return SearchFilters{
@@ -111,8 +105,9 @@ func parseFilters(r *http.Request) SearchFilters {
 		MinStories:       toInt("min_stories"),
 		MinGarage:        toInt("min_garage"),
 		MaxHOA:           toInt("max_hoa"),
-		PropertyType:     q.Get("property_type"),
-		Tags:             tags,
+		PropertyTypes:    mergePropertyTypes(q.Get("property_type"), q.Get("property_types")),
+		Tags:             parseList(q.Get("tags")),
+		ExcludeTags:      parseList(q.Get("exclude_tags")),
 		City:             q.Get("city"),
 		State:            q.Get("state"),
 		Zip:              q.Get("zip"),
@@ -128,4 +123,36 @@ func parseFilters(r *http.Request) SearchFilters {
 		RequireNew:       boolFromString(q.Get("new_build")),
 		RequireFixer:     boolFromString(q.Get("fixer")),
 	}
+}
+
+func mergePropertyTypes(single string, csv string) []string {
+	all := append(parseSingle(single), parseSingle(csv)...)
+	seen := make(map[string]struct{})
+	var out []string
+	for _, v := range all {
+		key := strings.ToLower(strings.TrimSpace(v))
+		if key == "" {
+			continue
+		}
+		if _, ok := seen[key]; !ok {
+			seen[key] = struct{}{}
+			out = append(out, v)
+		}
+	}
+	return out
+}
+
+func parseSingle(val string) []string {
+	if val == "" {
+		return nil
+	}
+	parts := strings.Split(val, ",")
+	var out []string
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }

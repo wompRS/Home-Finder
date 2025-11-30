@@ -18,8 +18,9 @@ type SearchFilters struct {
 	MinStories       int
 	MinGarage        int
 	MaxHOA           int
-	PropertyType     string
+	PropertyTypes    []string
 	Tags             []string
+	ExcludeTags      []string
 	City             string
 	State            string
 	Zip              string
@@ -231,7 +232,7 @@ func filterListings(filters SearchFilters) []types.Listing {
 		if filters.MaxHOA > 0 && l.HOAFee > filters.MaxHOA {
 			continue
 		}
-		if filters.PropertyType != "" && !strings.EqualFold(l.PropertyType, filters.PropertyType) {
+		if len(filters.PropertyTypes) > 0 && !matchesAnyPropertyType(l.PropertyType, filters.PropertyTypes) {
 			continue
 		}
 		tagPool := l.Tags
@@ -239,6 +240,9 @@ func filterListings(filters SearchFilters) []types.Listing {
 			tagPool = append(tagPool, l.VisionTags...)
 		}
 		if len(filters.Tags) > 0 && !hasAllTags(tagPool, filters.Tags) {
+			continue
+		}
+		if len(filters.ExcludeTags) > 0 && hasAnyTag(tagPool, filters.ExcludeTags) {
 			continue
 		}
 		if filters.City != "" && !strings.Contains(strings.ToLower(l.City), strings.ToLower(filters.City)) {
@@ -326,6 +330,28 @@ func matchesQuery(l types.Listing, q string) bool {
 	}
 	for _, f := range fields {
 		if strings.Contains(strings.ToLower(f), q) {
+			return true
+		}
+	}
+	return false
+}
+
+func hasAnyTag(listingTags []string, unwanted []string) bool {
+	tagSet := make(map[string]struct{}, len(listingTags))
+	for _, t := range listingTags {
+		tagSet[strings.ToLower(strings.TrimSpace(t))] = struct{}{}
+	}
+	for _, t := range unwanted {
+		if _, ok := tagSet[strings.ToLower(strings.TrimSpace(t))]; ok {
+			return true
+		}
+	}
+	return false
+}
+
+func matchesAnyPropertyType(pt string, allowed []string) bool {
+	for _, a := range allowed {
+		if strings.EqualFold(pt, strings.TrimSpace(a)) {
 			return true
 		}
 	}
