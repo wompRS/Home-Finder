@@ -54,6 +54,8 @@ services:
       context: .
       dockerfile: Dockerfile.scraper
     container_name: homefinder-scraper
+    env_file:
+      - .env
     environment:
       PORT: 3001
       SCRAPER_TOKEN: ${SCRAPER_TOKEN-}
