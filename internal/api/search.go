@@ -10,14 +10,19 @@ type SearchFilters struct {
 	MinPrice         int
 	MaxPrice         int
 	MinBeds          int
+	MaxBeds          int
 	MinBaths         float64
+	MaxBaths         float64
 	MinSqft          int
+	MaxSqft          int
 	MinLotSqft       int
+	MaxLotSqft       int
 	MinYearBuilt     int
 	MaxYearBuilt     int
 	MinStories       int
 	MinGarage        int
 	MaxHOA           int
+	MinHOA           int
 	PropertyTypes    []string
 	Tags             []string
 	ExcludeTags      []string
@@ -208,13 +213,25 @@ func filterListings(filters SearchFilters) []types.Listing {
 		if filters.MinBeds > 0 && l.Beds < filters.MinBeds {
 			continue
 		}
+		if filters.MaxBeds > 0 && l.Beds > filters.MaxBeds {
+			continue
+		}
 		if filters.MinBaths > 0 && l.Baths < filters.MinBaths {
+			continue
+		}
+		if filters.MaxBaths > 0 && l.Baths > filters.MaxBaths {
 			continue
 		}
 		if filters.MinSqft > 0 && l.Sqft < filters.MinSqft {
 			continue
 		}
+		if filters.MaxSqft > 0 && l.Sqft > filters.MaxSqft {
+			continue
+		}
 		if filters.MinLotSqft > 0 && l.LotSqft < filters.MinLotSqft {
+			continue
+		}
+		if filters.MaxLotSqft > 0 && l.LotSqft > filters.MaxLotSqft {
 			continue
 		}
 		if filters.MinYearBuilt > 0 && l.YearBuilt < filters.MinYearBuilt {
@@ -227,6 +244,9 @@ func filterListings(filters SearchFilters) []types.Listing {
 			continue
 		}
 		if filters.MinGarage > 0 && l.GarageSpaces < filters.MinGarage {
+			continue
+		}
+		if filters.MinHOA > 0 && l.HOAFee < filters.MinHOA {
 			continue
 		}
 		if filters.MaxHOA > 0 && l.HOAFee > filters.MaxHOA {
