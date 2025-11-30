@@ -1,6 +1,7 @@
 import express from 'express';
 import { chromium, devices } from 'playwright';
 import { LRUCache } from 'lru-cache';
+import * as proxyChain from 'proxy-chain';
 
 const PORT = process.env.PORT || 3001;
 const AUTH = process.env.SCRAPER_TOKEN || '';
@@ -33,7 +34,7 @@ app.get('/search', async (req, res) => {
 
   const provider = normalizeProvider(req.query.provider);
 
-  const proxy = buildProxyConfig();
+  const proxy = await resolveProxyConfig();
   let browser;
   try {
     browser = await chromium.launch({ headless: HEADLESS });
@@ -88,20 +89,38 @@ function normalizeProvider(raw) {
   return 'zillow';
 }
 
-function buildProxyConfig() {
+let proxyCachePromise = null;
+
+async function resolveProxyConfig() {
+  if (proxyCachePromise) return proxyCachePromise;
+  proxyCachePromise = (async () => {
+    const upstream = buildUpstreamProxyUrl();
+    if (!upstream) return null;
+
+    // If it's socks, wrap with proxy-chain to present HTTP to Playwright.
+    if (upstream.startsWith('socks5')) {
+      const localProxy = await proxyChain.anonymizeProxy(upstream);
+      return { server: localProxy };
+    }
+    return { server: upstream };
+  })();
+  return proxyCachePromise;
+}
+
+function buildUpstreamProxyUrl() {
   const url = process.env.SCRAPER_PROXY_URL;
-  if (url) return { server: url };
+  if (url) return url;
 
   const rawHosts = process.env.SCRAPER_PROXY_HOSTS;
   const hosts = rawHosts ? rawHosts.split(',').map((h) => h.trim()).filter(Boolean) : [];
   const host = process.env.SCRAPER_PROXY_HOST || (hosts.length ? hosts[Math.floor(Math.random() * hosts.length)] : '');
   const port = process.env.SCRAPER_PROXY_PORT;
-  if (!host || !port) return null;
+  if (!host || !port) return '';
   const user = process.env.SCRAPER_PROXY_USER;
   const pass = process.env.SCRAPER_PROXY_PASS;
   const proto = process.env.SCRAPER_PROXY_PROTO || 'socks5';
-  const server = `${proto}://${host}:${port}`;
-  return user ? { server, username: user, password: pass || '' } : { server };
+  const auth = user ? `${encodeURIComponent(user)}:${encodeURIComponent(pass || '')}@` : '';
+  return `${proto}://${auth}${host}:${port}`;
 }
 
 async function buildTargetUrl(q, provider = 'zillow', requester) {
