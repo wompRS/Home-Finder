@@ -196,6 +196,21 @@
     return { min: parts[0] || '', max: parts[1] || '' };
   };
 
+  const setRangeValue = (keyMin: keyof typeof filters, keyMax: keyof typeof filters, val: string, isMin: boolean) => {
+    const num = val;
+    if (isMin) {
+      filters[keyMin] = num;
+      if (filters[keyMax] && Number(num) > Number(filters[keyMax])) {
+        filters[keyMax] = num;
+      }
+    } else {
+      filters[keyMax] = num;
+      if (filters[keyMin] && Number(num) < Number(filters[keyMin])) {
+        filters[keyMin] = num;
+      }
+    }
+  };
+
   function addTag(tag: string) {
     const current = filters.tags.split(',').map((t) => t.trim()).filter(Boolean);
     if (!current.includes(tag)) {
@@ -283,6 +298,14 @@
                 <input type="range" min="100000" max="3000000" step="50000" value={Number(filters.maxPrice) || 0} on:input={(e) => (filters.maxPrice = digitsOnly(e.currentTarget.value))} class="range-thumb-mint w-1/2" />
               </div>
             </label>
+            <div class="md:col-span-1 flex flex-col gap-2 text-sm text-sand/80">
+              <span>Location</span>
+              <div class="grid grid-cols-3 gap-2">
+                <input type="text" placeholder="City" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.city} />
+                <input type="text" placeholder="ST" maxlength="2" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.state} on:input={(e) => enforceAlpha(e, (v) => (filters.state = v.toUpperCase()), 2)} />
+                <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="10" placeholder="ZIP" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.zip} on:input={(e) => enforceDigits(e, (v) => (filters.zip = v), 10)} />
+              </div>
+            </div>
             <label class="flex flex-col gap-2 text-sm text-sand/80">Beds range
               <input type="text" inputmode="numeric" pattern="[0-9-]*" placeholder="3-5" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" value={[filters.minBeds, filters.maxBeds].filter(Boolean).join('-')} on:input={(e) => {
                 const { min, max } = parseRangeInt(e.currentTarget.value);
@@ -371,15 +394,6 @@
                 {/each}
               </div>
             </div>
-            <label class="flex flex-col gap-2 text-sm text-sand/80">City
-              <input type="text" placeholder="Austin" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.city} />
-            </label>
-            <label class="flex flex-col gap-2 text-sm text-sand/80">State
-              <input type="text" placeholder="TX" maxlength="2" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.state} on:input={(e) => enforceAlpha(e, (v) => (filters.state = v.toUpperCase()), 2)} />
-            </label>
-            <label class="flex flex-col gap-2 text-sm text-sand/80">ZIP / area code
-              <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="10" placeholder="78704" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.zip} on:input={(e) => enforceDigits(e, (v) => (filters.zip = v), 10)} />
-            </label>
             <label class="flex flex-col gap-2 text-sm text-sand/80 md:col-span-2">Must-have tags (comma separated)
               <input type="text" placeholder="rv garage, pool, fenced yard" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.tags} />
               <div class="flex flex-wrap gap-2 text-xs text-sand/60">
