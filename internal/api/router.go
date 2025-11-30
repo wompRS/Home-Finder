@@ -109,8 +109,8 @@ func parseFilters(r *http.Request) SearchFilters {
 		Tags:             parseList(q.Get("tags")),
 		ExcludeTags:      parseList(q.Get("exclude_tags")),
 		City:             q.Get("city"),
-		State:            q.Get("state"),
-		Zip:              q.Get("zip"),
+		State:            sanitizeAlpha(q.Get("state"), 2),
+		Zip:              sanitizeDigits(q.Get("zip"), 10),
 		Query:            q.Get("q"),
 		UseVision:        boolFromString(q.Get("use_vision")),
 		RequirePool:      boolFromString(q.Get("pool")),
@@ -155,4 +155,36 @@ func parseSingle(val string) []string {
 		}
 	}
 	return out
+}
+
+func sanitizeDigits(val string, maxLen int) string {
+	if val == "" {
+		return ""
+	}
+	out := make([]rune, 0, len(val))
+	for _, r := range val {
+		if r >= '0' && r <= '9' {
+			out = append(out, r)
+			if maxLen > 0 && len(out) >= maxLen {
+				break
+			}
+		}
+	}
+	return string(out)
+}
+
+func sanitizeAlpha(val string, maxLen int) string {
+	if val == "" {
+		return ""
+	}
+	out := make([]rune, 0, len(val))
+	for _, r := range val {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') {
+			out = append(out, r)
+			if maxLen > 0 && len(out) >= maxLen {
+				break
+			}
+		}
+	}
+	return string(out)
 }

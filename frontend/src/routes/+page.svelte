@@ -1,4 +1,4 @@
-<script lang="ts">
+ï»¿<script lang="ts">
   import type { Listing } from './+page';
   import { onMount } from 'svelte';
 
@@ -10,7 +10,7 @@
 
   const propertyOptions = ['Single Family', 'Condo', 'Townhouse', 'Multi-family', 'Land'];
 
-  let filters = {
+  const emptyFilters = () => ({
     minPrice: '',
     maxPrice: '',
     minBeds: '',
@@ -39,7 +39,9 @@
     rvParking: false,
     newBuild: false,
     fixer: false
-  };
+  });
+
+  let filters = emptyFilters();
 
   const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8080';
   const popularTags = ['rv garage', 'pool', 'fenced yard', 'balcony', 'waterfront', 'mountain view', 'guest house'];
@@ -106,6 +108,22 @@
     return params.toString();
   };
 
+  const digitsOnly = (v: string, limit?: number) => {
+    const cleaned = v.replace(/[^0-9]/g, '');
+    return limit ? cleaned.slice(0, limit) : cleaned;
+  };
+
+  const digitsDot = (v: string) => {
+    const cleaned = v.replace(/[^0-9.]/g, '');
+    const parts = cleaned.split('.');
+    return parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : cleaned;
+  };
+
+  const alphaOnly = (v: string, limit?: number) => {
+    const cleaned = v.replace(/[^a-z]/gi, '');
+    return limit ? cleaned.slice(0, limit) : cleaned;
+  };
+
   function addTag(tag: string) {
     const current = filters.tags.split(',').map((t) => t.trim()).filter(Boolean);
     if (!current.includes(tag)) {
@@ -140,36 +158,7 @@
   }
 
   function resetFilters() {
-    filters = {
-      minPrice: '',
-      maxPrice: '',
-      minBeds: '',
-      minBaths: '',
-      minSqft: '',
-      minLotSqft: '',
-      minYear: '',
-      maxYear: '',
-      minStories: '',
-      minGarage: '',
-      maxHOA: '',
-      propertyTypes: Object.fromEntries(propertyOptions.map((p) => [p, false])) as Record<string, boolean>,
-      tags: '',
-      excludeTags: '',
-      city: '',
-      state: '',
-      zip: '',
-      query: '',
-      useVision: true,
-      pool: false,
-      waterfront: false,
-      view: false,
-      basement: false,
-      fireplace: false,
-      adu: false,
-      rvParking: false,
-      newBuild: false,
-      fixer: false
-    };
+    filters = emptyFilters();
   }
 
   onMount(runSearch);
@@ -207,37 +196,37 @@
 
           <div class="grid gap-4 md:grid-cols-2">
             <label class="flex flex-col gap-2 text-sm text-sand/80">Price min
-              <input type="number" min="0" placeholder="450000" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minPrice} />
+              <input type="number" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="450000" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minPrice} on:input={(e) => (filters.minPrice = digitsOnly(e.currentTarget.value))} />
             </label>
             <label class="flex flex-col gap-2 text-sm text-sand/80">Price max
-              <input type="number" min="0" placeholder="1200000" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.maxPrice} />
+              <input type="number" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="1200000" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.maxPrice} on:input={(e) => (filters.maxPrice = digitsOnly(e.currentTarget.value))} />
             </label>
             <label class="flex flex-col gap-2 text-sm text-sand/80">Beds (min)
-              <input type="number" min="0" placeholder="3" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minBeds} />
+              <input type="number" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="3" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minBeds} on:input={(e) => (filters.minBeds = digitsOnly(e.currentTarget.value))} />
             </label>
             <label class="flex flex-col gap-2 text-sm text-sand/80">Baths (min)
-              <input type="number" min="0" step="0.5" placeholder="2" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minBaths} />
+              <input type="number" min="0" step="0.5" inputmode="decimal" placeholder="2" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minBaths} on:input={(e) => (filters.minBaths = digitsDot(e.currentTarget.value))} />
             </label>
             <label class="flex flex-col gap-2 text-sm text-sand/80">Min sqft
-              <input type="number" min="0" placeholder="1400" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minSqft} />
+              <input type="number" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="1400" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minSqft} on:input={(e) => (filters.minSqft = digitsOnly(e.currentTarget.value))} />
             </label>
             <label class="flex flex-col gap-2 text-sm text-sand/80">Min lot sqft
-              <input type="number" min="0" placeholder="5000" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minLotSqft} />
+              <input type="number" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="5000" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minLotSqft} on:input={(e) => (filters.minLotSqft = digitsOnly(e.currentTarget.value))} />
             </label>
             <label class="flex flex-col gap-2 text-sm text-sand/80">Year built (min)
-              <input type="number" min="1900" placeholder="1990" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minYear} />
+              <input type="number" min="1900" inputmode="numeric" pattern="[0-9]*" placeholder="1990" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minYear} on:input={(e) => (filters.minYear = digitsOnly(e.currentTarget.value, 4))} />
             </label>
             <label class="flex flex-col gap-2 text-sm text-sand/80">Year built (max)
-              <input type="number" min="1900" placeholder="2024" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.maxYear} />
+              <input type="number" min="1900" inputmode="numeric" pattern="[0-9]*" placeholder="2024" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.maxYear} on:input={(e) => (filters.maxYear = digitsOnly(e.currentTarget.value, 4))} />
             </label>
             <label class="flex flex-col gap-2 text-sm text-sand/80">Stories (min)
-              <input type="number" min="0" placeholder="1" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minStories} />
+              <input type="number" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="1" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minStories} on:input={(e) => (filters.minStories = digitsOnly(e.currentTarget.value))} />
             </label>
             <label class="flex flex-col gap-2 text-sm text-sand/80">Garage spaces (min)
-              <input type="number" min="0" placeholder="2" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minGarage} />
+              <input type="number" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="2" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minGarage} on:input={(e) => (filters.minGarage = digitsOnly(e.currentTarget.value))} />
             </label>
             <label class="flex flex-col gap-2 text-sm text-sand/80">Max HOA ($/mo)
-              <input type="number" min="0" placeholder="400" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.maxHOA} />
+              <input type="number" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="400" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.maxHOA} on:input={(e) => (filters.maxHOA = digitsOnly(e.currentTarget.value))} />
             </label>
             <div class="md:col-span-2">
               <p class="mb-2 text-sm text-sand/80">Property types</p>
@@ -253,10 +242,10 @@
               <input type="text" placeholder="Austin" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.city} />
             </label>
             <label class="flex flex-col gap-2 text-sm text-sand/80">State
-              <input type="text" placeholder="TX" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.state} />
+              <input type="text" placeholder="TX" maxlength="2" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.state} on:input={(e) => (filters.state = alphaOnly(e.currentTarget.value, 2).toUpperCase())} />
             </label>
             <label class="flex flex-col gap-2 text-sm text-sand/80">ZIP / area code
-              <input type="text" placeholder="78704" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.zip} />
+              <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="10" placeholder="78704" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.zip} on:input={(e) => (filters.zip = digitsOnly(e.currentTarget.value, 10))} />
             </label>
             <label class="flex flex-col gap-2 text-sm text-sand/80 md:col-span-2">Must-have tags (comma separated)
               <input type="text" placeholder="rv garage, pool, fenced yard" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.tags} />
@@ -273,7 +262,7 @@
               <div class="flex flex-wrap gap-2 text-xs text-sand/60">
                 {#each commonExcludes as tag}
                   <button type="button" class="rounded-full border border-white/10 bg-white/5 px-3 py-1 transition hover:border-mint/40 hover:text-mint" on:click={() => addExclude(tag)}>
-                    × {tag}
+                    Ã— {tag}
                   </button>
                 {/each}
               </div>
@@ -360,11 +349,11 @@
                   <p class="text-xs uppercase tracking-[0.2em] text-mint/80">{listing.city}, {listing.state}</p>
                   <h3 class="font-heading text-xl font-semibold text-white">{listing.title}</h3>
                   <p class="text-sm text-sand/70">{listing.address}</p>
-                  <p class="text-xs text-sand/60">Year {listing.yearBuilt} • {listing.stories} story • HOA ${listing.hoaFee || 0}</p>
+                  <p class="text-xs text-sand/60">Year {listing.yearBuilt} â€¢ {listing.stories} story â€¢ HOA ${listing.hoaFee || 0}</p>
                 </div>
                 <div class="text-right">
                   <p class="font-heading text-xl font-semibold text-mint">${listing.price.toLocaleString()}</p>
-                  <p class="text-xs text-sand/60">{listing.beds} bd • {listing.baths} ba • {listing.sqft} sqft</p>
+                  <p class="text-xs text-sand/60">{listing.beds} bd â€¢ {listing.baths} ba â€¢ {listing.sqft} sqft</p>
                   <p class="text-xs text-sand/50">Lot {listing.lotSqft} sqft</p>
                 </div>
               </div>
