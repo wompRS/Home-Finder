@@ -90,16 +90,18 @@ function normalizeProvider(raw) {
 
 function buildProxyConfig() {
   const url = process.env.SCRAPER_PROXY_URL;
-  if (url) {
-    return { server: url };
-  }
-  const host = process.env.SCRAPER_PROXY_HOST;
+  if (url) return { server: url };
+
+  const rawHosts = process.env.SCRAPER_PROXY_HOSTS;
+  const hosts = rawHosts ? rawHosts.split(',').map((h) => h.trim()).filter(Boolean) : [];
+  const host = process.env.SCRAPER_PROXY_HOST || (hosts.length ? hosts[Math.floor(Math.random() * hosts.length)] : '');
   const port = process.env.SCRAPER_PROXY_PORT;
   if (!host || !port) return null;
   const user = process.env.SCRAPER_PROXY_USER;
   const pass = process.env.SCRAPER_PROXY_PASS;
+  const proto = process.env.SCRAPER_PROXY_PROTO || 'socks5';
   const auth = user ? `${user}:${pass || ''}@` : '';
-  return { server: `http://${auth}${host}:${port}` };
+  return { server: `${proto}://${auth}${host}:${port}` };
 }
 
 async function buildTargetUrl(q, provider = 'zillow', requester) {
