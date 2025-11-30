@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -45,7 +46,16 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 
 func searchHandler(w http.ResponseWriter, r *http.Request) {
 	filters := parseFilters(r)
-	results := filterListings(filters)
+	source := sampleListings
+	if base, key := listingsConfigFromEnv(); base != "" {
+		if remote, err := fetchListingsFromAPI(r.Context(), base, key, filters); err != nil {
+			log.Printf("remote listings fetch failed, using demo data: %v", err)
+		} else if len(remote) > 0 {
+			source = remote
+		}
+	}
+
+	results := filterListings(filters, source)
 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"results": results,

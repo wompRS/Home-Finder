@@ -1,7 +1,14 @@
 package api
 
 import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/url"
+	"os"
 	"strings"
+	"time"
 
 	"home-finder/internal/types"
 )
@@ -201,9 +208,9 @@ var sampleListings = []types.Listing{
 	},
 }
 
-func filterListings(filters SearchFilters) []types.Listing {
+func filterListings(filters SearchFilters, listings []types.Listing) []types.Listing {
 	var out []types.Listing
-	for _, l := range sampleListings {
+	for _, l := range listings {
 		if filters.MinPrice > 0 && l.Price < filters.MinPrice {
 			continue
 		}
@@ -376,4 +383,140 @@ func matchesAnyPropertyType(pt string, allowed []string) bool {
 		}
 	}
 	return false
+}
+
+// fetchListingsFromAPI calls an external listing API (if configured) and maps results.
+// The external API is expected to return JSON shaped as {"results": [ ... listings ... ]}.
+func fetchListingsFromAPI(ctx context.Context, baseURL, apiKey string, filters SearchFilters) ([]types.Listing, error) {
+	client := &http.Client{Timeout: 8 * time.Second}
+	q := url.Values{}
+	if filters.MinPrice > 0 {
+		q.Set("min_price", fmt.Sprintf("%d", filters.MinPrice))
+	}
+	if filters.MaxPrice > 0 {
+		q.Set("max_price", fmt.Sprintf("%d", filters.MaxPrice))
+	}
+	if filters.MinBeds > 0 {
+		q.Set("min_beds", fmt.Sprintf("%d", filters.MinBeds))
+	}
+	if filters.MaxBeds > 0 {
+		q.Set("max_beds", fmt.Sprintf("%d", filters.MaxBeds))
+	}
+	if filters.MinBaths > 0 {
+		q.Set("min_baths", fmt.Sprintf("%g", filters.MinBaths))
+	}
+	if filters.MaxBaths > 0 {
+		q.Set("max_baths", fmt.Sprintf("%g", filters.MaxBaths))
+	}
+	if filters.MinSqft > 0 {
+		q.Set("min_sqft", fmt.Sprintf("%d", filters.MinSqft))
+	}
+	if filters.MaxSqft > 0 {
+		q.Set("max_sqft", fmt.Sprintf("%d", filters.MaxSqft))
+	}
+	if filters.MinLotSqft > 0 {
+		q.Set("min_lot_sqft", fmt.Sprintf("%d", filters.MinLotSqft))
+	}
+	if filters.MaxLotSqft > 0 {
+		q.Set("max_lot_sqft", fmt.Sprintf("%d", filters.MaxLotSqft))
+	}
+	if filters.MinYearBuilt > 0 {
+		q.Set("min_year_built", fmt.Sprintf("%d", filters.MinYearBuilt))
+	}
+	if filters.MaxYearBuilt > 0 {
+		q.Set("max_year_built", fmt.Sprintf("%d", filters.MaxYearBuilt))
+	}
+	if filters.MinStories > 0 {
+		q.Set("min_stories", fmt.Sprintf("%d", filters.MinStories))
+	}
+	if filters.MinGarage > 0 {
+		q.Set("min_garage", fmt.Sprintf("%d", filters.MinGarage))
+	}
+	if filters.MinHOA > 0 {
+		q.Set("min_hoa", fmt.Sprintf("%d", filters.MinHOA))
+	}
+	if filters.MaxHOA > 0 {
+		q.Set("max_hoa", fmt.Sprintf("%d", filters.MaxHOA))
+	}
+	if len(filters.PropertyTypes) > 0 {
+		q.Set("property_types", strings.Join(filters.PropertyTypes, ","))
+	}
+	if len(filters.Tags) > 0 {
+		q.Set("tags", strings.Join(filters.Tags, ","))
+	}
+	if len(filters.ExcludeTags) > 0 {
+		q.Set("exclude_tags", strings.Join(filters.ExcludeTags, ","))
+	}
+	if filters.City != "" {
+		q.Set("city", filters.City)
+	}
+	if filters.State != "" {
+		q.Set("state", filters.State)
+	}
+	if filters.Zip != "" {
+		q.Set("zip", filters.Zip)
+	}
+	if filters.Query != "" {
+		q.Set("q", filters.Query)
+	}
+	if filters.UseVision {
+		q.Set("use_vision", "1")
+	}
+	if filters.RequirePool {
+		q.Set("pool", "1")
+	}
+	if filters.RequireWater {
+		q.Set("waterfront", "1")
+	}
+	if filters.RequireView {
+		q.Set("view", "1")
+	}
+	if filters.RequireBasement {
+		q.Set("basement", "1")
+	}
+	if filters.RequireFireplace {
+		q.Set("fireplace", "1")
+	}
+	if filters.RequireADU {
+		q.Set("adu", "1")
+	}
+	if filters.RequireRVParking {
+		q.Set("rv_parking", "1")
+	}
+	if filters.RequireNew {
+		q.Set("new_build", "1")
+	}
+	if filters.RequireFixer {
+		q.Set("fixer", "1")
+	}
+
+	apiURL := fmt.Sprintf("%s/search", strings.TrimRight(baseURL, "/"))
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.URL.RawQuery = q.Encode()
+	if apiKey != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiKey))
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("upstream status %d", resp.StatusCode)
+	}
+	var payload struct {
+		Results []types.Listing `json:"results"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		return nil, err
+	}
+	return payload.Results, nil
+}
+
+func listingsConfigFromEnv() (string, string) {
+	return os.Getenv("LISTINGS_API_BASE"), os.Getenv("LISTINGS_API_KEY")
 }
