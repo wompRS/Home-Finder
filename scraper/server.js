@@ -32,20 +32,26 @@ app.get('/search', async (req, res) => {
   if (cache.has(key)) return res.json({ results: cache.get(key), cached: true });
 
   const provider = normalizeProvider(req.query.provider);
-  const targetUrl = await buildTargetUrl(req.query, provider);
-  if (!targetUrl) return res.status(400).json({ error: 'missing location (city/state or zip or q)' });
 
+  const proxy = buildProxyConfig();
+  let browser;
   try {
-    const browser = await chromium.launch({ headless: HEADLESS });
+    browser = await chromium.launch({ headless: HEADLESS });
     const context = await browser.newContext({
       ...devices['Desktop Chrome'],
       userAgent: USER_AGENT,
       viewport: { width: 1440, height: 900 },
       javaScriptEnabled: true,
+      proxy: proxy || undefined,
     });
     const page = await context.newPage();
-
     attachLogging(page, provider);
+
+    const targetUrl = await buildTargetUrl(req.query, provider, context.request);
+    if (!targetUrl) {
+      await browser.close();
+      return res.status(400).json({ error: 'missing location (city/state or zip or q)' });
+    }
 
     await page.goto(targetUrl, { waitUntil: 'load', timeout: 60000 });
     await page.waitForTimeout(3000);
@@ -64,8 +70,9 @@ app.get('/search', async (req, res) => {
 
     const finalResults = results.length ? results : demoFallback(req.query);
     cache.set(key, finalResults);
-    res.json({ results: finalResults, source: results.length ? provider : 'fallback' });
+    res.json({ results: finalResults, source: results.length ? provider : 'fallback', proxy: proxy ? 'used' : 'none' });
   } catch (err) {
+    if (browser) await browser.close();
     console.error('scrape error', err);
     res.status(500).json({ error: 'scrape failed', detail: err.message });
   }
@@ -81,14 +88,28 @@ function normalizeProvider(raw) {
   return 'zillow';
 }
 
-async function buildTargetUrl(q, provider = 'zillow') {
+function buildProxyConfig() {
+  const url = process.env.SCRAPER_PROXY_URL;
+  if (url) {
+    return { server: url };
+  }
+  const host = process.env.SCRAPER_PROXY_HOST;
+  const port = process.env.SCRAPER_PROXY_PORT;
+  if (!host || !port) return null;
+  const user = process.env.SCRAPER_PROXY_USER;
+  const pass = process.env.SCRAPER_PROXY_PASS;
+  const auth = user ? `${user}:${pass || ''}@` : '';
+  return { server: `http://${auth}${host}:${port}` };
+}
+
+async function buildTargetUrl(q, provider = 'zillow', requester) {
   const city = (q.city || '').trim();
   const state = (q.state || '').trim();
   const zip = (q.zip || '').trim();
   const query = (q.q || '').trim();
 
   if (provider === 'redfin') {
-    const region = await lookupRedfinRegion(city, state, zip || query);
+    const region = await lookupRedfinRegion(city, state, zip || query, requester);
     if (region?.url) return region.url;
     if (zip) return `https://www.redfin.com/zipcode/${encodeURIComponent(zip)}`;
     if (city && state) return `https://www.redfin.com/stingray/do/location-autocomplete?location=${encodeURIComponent(`${city}, ${state}`)}`;
@@ -108,19 +129,21 @@ async function buildTargetUrl(q, provider = 'zillow') {
   return '';
 }
 
-async function lookupRedfinRegion(city, state, altQuery) {
+async function lookupRedfinRegion(city, state, altQuery, requester) {
   const q = [city, state].filter(Boolean).join(', ') || altQuery;
   if (!q) return null;
   try {
     const url = `https://www.redfin.com/stingray/do/location-autocomplete?location=${encodeURIComponent(q)}&start=0&count=10&v=2`;
-    const res = await fetch(url, {
-      headers: {
-        'User-Agent': USER_AGENT,
-        Referer: 'https://www.redfin.com/',
-      },
-    });
+    const res = requester
+      ? await requester.get(url, { headers: { 'User-Agent': USER_AGENT, Referer: 'https://www.redfin.com/' } })
+      : await fetch(url, {
+          headers: {
+            'User-Agent': USER_AGENT,
+            Referer: 'https://www.redfin.com/',
+          },
+        });
     if (!res.ok) return null;
-    const text = await res.text();
+    const text = requester ? await res.text() : await res.text();
     const json = JSON.parse(text);
     const first = json?.payload?.sections?.flatMap((s) => s.rows || []).find((r) => r.id && r.url);
     if (!first) return null;
