@@ -31,3 +31,8 @@ API: http://localhost:8080/health
 - Point `SCRAPER_LISTINGS_BASE` to your self-hosted Zillow/Redfin scraper proxy (for personal use) or `LISTINGS_API_BASE` to a partner/MLS feed.
 - Implement ingest + enrichment jobs using the vision API.
 - Harden search params and filters, connect UI filters to API queries.
+
+## Scraper service (personal use)
+- A lightweight Playwright-based scraper is included at `scraper/` and runs as `scraper` in docker-compose (exposed on :3001).
+- Set `SCRAPER_TOKEN` to protect it. The API is pre-wired to call `http://scraper:3001/search`.
+- It targets Zillow cards by default and falls back to a demo result if nothing is scraped. Selectors may need updates over time (see `scraper/server.js`).

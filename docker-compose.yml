@@ -25,9 +25,13 @@ services:
       PORT: 8080
       DATABASE_URL: postgres://homefinder:homefinder@db:5432/homefinder?sslmode=disable
       VISION_API_KEY: ${VISION_API_KEY-}
+      SCRAPER_LISTINGS_BASE: http://scraper:3001
+      SCRAPER_LISTINGS_KEY: ${SCRAPER_TOKEN-}
     depends_on:
       db:
         condition: service_healthy
+      scraper:
+        condition: service_started
     ports:
       - "8080:8080"
 
@@ -44,6 +48,18 @@ services:
         condition: service_started
     ports:
       - "4173:4173"
+
+  scraper:
+    build:
+      context: .
+      dockerfile: Dockerfile.scraper
+    container_name: homefinder-scraper
+    environment:
+      PORT: 3001
+      SCRAPER_TOKEN: ${SCRAPER_TOKEN-}
+      SCRAPER_MAX_RESULTS: 40
+    ports:
+      - "3001:3001"
 
 volumes:
   db_data:
