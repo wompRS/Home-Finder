@@ -38,8 +38,10 @@ app.get('/search', async (req, res) => {
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
     });
 
-    await page.goto(targetUrl, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 45000 });
+    await page.waitForTimeout(2500);
     await autoScroll(page, 2);
+    await page.waitForSelector('[data-testid="property-card"]', { timeout: 20000 }).catch(() => {});
 
     const results = await extractZillowCards(page, MAX_RESULTS);
     await browser.close();
