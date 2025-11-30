@@ -2,6 +2,10 @@
 
 Containerized MVP scaffold for a modern real estate search app with AI vision enrichment.
 
+## Current status
+- **Scraping is currently inoperable**: Zillow/Redfin/Realtor block the included scraper (even with VPN/SOCKS). The app falls back to demo data until proper data access (licensed feed or working residential HTTP/HTTPS proxies) is provided.
+- Keep credentials in `.env` locally; do not commit them.
+
 ## Stack
 - Frontend: SvelteKit + Tailwind (charcoal + mint theme)
 - API: Go (chi)
