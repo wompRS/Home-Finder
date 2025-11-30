@@ -57,6 +57,7 @@
     minGarage: '',
     minHOA: '',
     maxHOA: '',
+    hoaEnabled: false,
     propertyTypes: Object.fromEntries(propertyOptions.map((p) => [p, false])) as Record<string, boolean>,
     tags: '',
     excludeTags: '',
@@ -95,7 +96,7 @@
     if (filters.minYear || filters.maxYear) chips.push(`Year ${filters.minYear || 'any'}-${filters.maxYear || 'any'}`);
     if (filters.minStories) chips.push(`${filters.minStories}+ stories`);
     if (filters.minGarage) chips.push(`${filters.minGarage}+ garage`);
-    if (filters.minHOA || filters.maxHOA) chips.push(`HOA ${filters.minHOA || '0'}-${filters.maxHOA || 'any'}`);
+    if (filters.hoaEnabled && (filters.minHOA || filters.maxHOA)) chips.push(`HOA ${filters.minHOA || '0'}-${filters.maxHOA || 'any'}`);
     selectedTypes().forEach((t) => chips.push(t));
     if (filters.city) chips.push(`City: ${filters.city}`);
     if (filters.state) chips.push(`State: ${filters.state}`);
@@ -126,8 +127,10 @@
     if (filters.maxYear) params.set('max_year_built', filters.maxYear);
     if (filters.minStories) params.set('min_stories', filters.minStories);
     if (filters.minGarage) params.set('min_garage', filters.minGarage);
-    if (filters.minHOA) params.set('min_hoa', filters.minHOA);
-    if (filters.maxHOA) params.set('max_hoa', filters.maxHOA);
+    if (filters.hoaEnabled) {
+      if (filters.minHOA) params.set('min_hoa', filters.minHOA);
+      if (filters.maxHOA) params.set('max_hoa', filters.maxHOA);
+    }
     const types = selectedTypes();
     if (types.length) params.set('property_types', types.join(','));
     if (filters.tags) params.set('tags', filters.tags);
@@ -196,34 +199,9 @@
     return { min: parts[0] || '', max: parts[1] || '' };
   };
 
-  const setRangeValue = (keyMin: keyof typeof filters, keyMax: keyof typeof filters, val: string, isMin: boolean) => {
-    const num = val;
-    if (isMin) {
-      filters[keyMin] = num;
-      if (filters[keyMax] && Number(num) > Number(filters[keyMax])) {
-        filters[keyMax] = num;
-      }
-    } else {
-      filters[keyMax] = num;
-      if (filters[keyMin] && Number(num) < Number(filters[keyMin])) {
-        filters[keyMin] = num;
-      }
-    }
-  };
-
   const formatMoney = (val: string) => {
     if (!val) return '';
     return `$${Number(val).toLocaleString()}`;
-  };
-
-  const priceRangePct = () => {
-    const minBound = 50000;
-    const maxBound = 3000000;
-    const min = Math.max(minBound, Math.min(maxBound, Number(filters.minPrice || minBound)));
-    const max = Math.max(minBound, Math.min(maxBound, Number(filters.maxPrice || maxBound)));
-    const start = ((min - minBound) / (maxBound - minBound)) * 100;
-    const end = ((max - minBound) / (maxBound - minBound)) * 100;
-    return { start, end };
   };
 
   function addTag(tag: string) {
@@ -308,28 +286,6 @@
                 filters.maxPrice = max;
                 e.currentTarget.value = [min, max].filter(Boolean).join('-');
               }} />
-              <div class="mt-2 dual-slider">
-                <div class="dual-slider__track"></div>
-                <div class="dual-slider__fill" style={`left: ${priceRangePct().start}%; right: ${100 - priceRangePct().end}%;`}></div>
-                <input
-                  type="range"
-                  min="50000"
-                  max="3000000"
-                  step="50000"
-                  value={Number(filters.minPrice) || 50000}
-                  on:input={(e) => setRangeValue('minPrice', 'maxPrice', digitsOnly(e.currentTarget.value), true)}
-                  class="dual-slider__input range-thumb-mint"
-                />
-                <input
-                  type="range"
-                  min="50000"
-                  max="3000000"
-                  step="50000"
-                  value={Number(filters.maxPrice) || 3000000}
-                  on:input={(e) => setRangeValue('minPrice', 'maxPrice', digitsOnly(e.currentTarget.value), false)}
-                  class="dual-slider__input range-thumb-mint"
-                />
-              </div>
               <div class="flex justify-between text-xs text-sand/60">
                 <span>{formatMoney(filters.minPrice) || '$50k'}</span>
                 <span>{formatMoney(filters.maxPrice) || '$3M'}</span>
@@ -350,10 +306,6 @@
                 filters.maxBeds = max;
                 e.currentTarget.value = [min, max].filter(Boolean).join('-');
               }} />
-              <div class="mt-2 flex items-center gap-2">
-                <input type="range" min="0" max="10" step="1" value={Number(filters.minBeds) || 0} on:input={(e) => (filters.minBeds = digitsOnly(e.currentTarget.value))} class="range-thumb-mint w-1/2" />
-                <input type="range" min="1" max="12" step="1" value={Number(filters.maxBeds) || 0} on:input={(e) => (filters.maxBeds = digitsOnly(e.currentTarget.value))} class="range-thumb-mint w-1/2" />
-              </div>
             </label>
             <label class="flex flex-col gap-2 text-sm text-sand/80">Baths range
               <input type="text" inputmode="decimal" pattern="[0-9.-]*" placeholder="2-3" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" value={[filters.minBaths, filters.maxBaths].filter(Boolean).join('-')} on:input={(e) => {
@@ -362,10 +314,6 @@
                 filters.maxBaths = max;
                 e.currentTarget.value = [min, max].filter(Boolean).join('-');
               }} />
-              <div class="mt-2 flex items-center gap-2">
-                <input type="range" min="0" max="6" step="0.5" value={Number(filters.minBaths) || 0} on:input={(e) => (filters.minBaths = digitsDot(e.currentTarget.value))} class="range-thumb-mint w-1/2" />
-                <input type="range" min="0.5" max="8" step="0.5" value={Number(filters.maxBaths) || 0} on:input={(e) => (filters.maxBaths = digitsDot(e.currentTarget.value))} class="range-thumb-mint w-1/2" />
-              </div>
             </label>
             <label class="flex flex-col gap-2 text-sm text-sand/80">Sqft range
               <input type="text" inputmode="numeric" pattern="[0-9-]*" placeholder="1400-2400" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" value={[filters.minSqft, filters.maxSqft].filter(Boolean).join('-')} on:input={(e) => {
@@ -374,10 +322,6 @@
                 filters.maxSqft = max;
                 e.currentTarget.value = [min, max].filter(Boolean).join('-');
               }} />
-              <div class="mt-2 flex items-center gap-2">
-                <input type="range" min="300" max="6000" step="50" value={Number(filters.minSqft) || 0} on:input={(e) => (filters.minSqft = digitsOnly(e.currentTarget.value))} class="range-thumb-mint w-1/2" />
-                <input type="range" min="500" max="10000" step="50" value={Number(filters.maxSqft) || 0} on:input={(e) => (filters.maxSqft = digitsOnly(e.currentTarget.value))} class="range-thumb-mint w-1/2" />
-              </div>
             </label>
             <label class="flex flex-col gap-2 text-sm text-sand/80">Lot sqft range
               <input type="text" inputmode="numeric" pattern="[0-9-]*" placeholder="5000-8000" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" value={[filters.minLotSqft, filters.maxLotSqft].filter(Boolean).join('-')} on:input={(e) => {
@@ -386,10 +330,6 @@
                 filters.maxLotSqft = max;
                 e.currentTarget.value = [min, max].filter(Boolean).join('-');
               }} />
-              <div class="mt-2 flex items-center gap-2">
-                <input type="range" min="0" max="43560" step="250" value={Number(filters.minLotSqft) || 0} on:input={(e) => (filters.minLotSqft = digitsOnly(e.currentTarget.value))} class="range-thumb-mint w-1/2" />
-                <input type="range" min="1000" max="130680" step="250" value={Number(filters.maxLotSqft) || 0} on:input={(e) => (filters.maxLotSqft = digitsOnly(e.currentTarget.value))} class="range-thumb-mint w-1/2" />
-              </div>
             </label>
             <label class="flex flex-col gap-2 text-sm text-sand/80">Year built range
               <input type="text" inputmode="numeric" pattern="[0-9-]*" placeholder="1990-2024" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" value={[filters.minYear, filters.maxYear].filter(Boolean).join('-')} on:input={(e) => {
@@ -398,10 +338,6 @@
                 filters.maxYear = max ? max.slice(0, 4) : '';
                 e.currentTarget.value = [filters.minYear, filters.maxYear].filter(Boolean).join('-');
               }} />
-              <div class="mt-2 flex items-center gap-2">
-                <input type="range" min="1900" max="2025" step="1" value={Number(filters.minYear) || 1900} on:input={(e) => (filters.minYear = digitsOnly(e.currentTarget.value, 4))} class="range-thumb-mint w-1/2" />
-                <input type="range" min="1900" max="2025" step="1" value={Number(filters.maxYear) || 2025} on:input={(e) => (filters.maxYear = digitsOnly(e.currentTarget.value, 4))} class="range-thumb-mint w-1/2" />
-              </div>
             </label>
             <label class="flex flex-col gap-2 text-sm text-sand/80">Stories (min)
               <input type="number" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="1" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minStories} on:input={(e) => enforceDigits(e, (v) => (filters.minStories = v))} />
@@ -409,18 +345,28 @@
             <label class="flex flex-col gap-2 text-sm text-sand/80">Garage spaces (min)
               <input type="number" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="2" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minGarage} on:input={(e) => enforceDigits(e, (v) => (filters.minGarage = v))} />
             </label>
-            <label class="flex flex-col gap-2 text-sm text-sand/80">HOA range ($/mo)
-              <input type="text" inputmode="numeric" pattern="[0-9-]*" placeholder="0-400" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" value={[filters.minHOA, filters.maxHOA].filter(Boolean).join('-')} on:input={(e) => {
-                const { min, max } = parseRangeInt(e.currentTarget.value);
-                filters.minHOA = min;
-                filters.maxHOA = max;
-                e.currentTarget.value = [min, max].filter(Boolean).join('-');
-              }} />
-              <div class="mt-2 flex items-center gap-2">
-                <input type="range" min="0" max="1500" step="25" value={Number(filters.minHOA) || 0} on:input={(e) => (filters.minHOA = digitsOnly(e.currentTarget.value))} class="range-thumb-mint w-1/2" />
-                <input type="range" min="0" max="2500" step="25" value={Number(filters.maxHOA) || 0} on:input={(e) => (filters.maxHOA = digitsOnly(e.currentTarget.value))} class="range-thumb-mint w-1/2" />
+            <div class="flex flex-col gap-2 text-sm text-sand/80">
+              <div class="flex items-center justify-between">
+                <span>HOA range ($/mo)</span>
+                <label class="inline-flex items-center gap-2">
+                  <input type="checkbox" class="h-5 w-5 accent-mint" bind:checked={filters.hoaEnabled} on:change={() => {
+                    if (!filters.hoaEnabled) {
+                      filters.minHOA = '';
+                      filters.maxHOA = '';
+                    }
+                  }} />
+                  <span class="text-xs text-sand/60">Enable</span>
+                </label>
               </div>
-            </label>
+              {#if filters.hoaEnabled}
+                <input type="text" inputmode="numeric" pattern="[0-9-]*" placeholder="0-400" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" value={[filters.minHOA, filters.maxHOA].filter(Boolean).join('-')} on:input={(e) => {
+                  const { min, max } = parseRangeInt(e.currentTarget.value);
+                  filters.minHOA = min;
+                  filters.maxHOA = max;
+                  e.currentTarget.value = [min, max].filter(Boolean).join('-');
+                }} />
+              {/if}
+            </div>
             <div class="md:col-span-2">
               <p class="mb-2 text-sm text-sand/80">Property types</p>
               <div class="grid grid-cols-2 gap-2 text-sm text-sand/80">
