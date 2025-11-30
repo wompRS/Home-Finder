@@ -475,9 +475,7 @@ function attachLogging(page, provider) {
   const start = Date.now();
   page.on('response', (resp) => {
     if (resp.status() >= 400) {
-      console.warn(
-        `[${provider}] HTTP ${resp.status()} ${resp.url().slice(0, 120)} took ${resp.timing().responseEnd || 0}ms`
-      );
+      console.warn(`[${provider}] HTTP ${resp.status()} ${resp.url().slice(0, 120)}`);
     }
   });
   page.on('requestfailed', (req) => {
