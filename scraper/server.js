@@ -92,6 +92,7 @@ function normalizeProvider(raw) {
 let proxyCachePromise = null;
 
 async function resolveProxyConfig() {
+  if (process.env.SCRAPER_PROXY_DISABLE === '1') return null;
   if (proxyCachePromise) return proxyCachePromise;
   proxyCachePromise = (async () => {
     const upstream = buildUpstreamProxyUrl();
