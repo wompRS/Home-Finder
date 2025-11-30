@@ -100,8 +100,8 @@ function buildProxyConfig() {
   const user = process.env.SCRAPER_PROXY_USER;
   const pass = process.env.SCRAPER_PROXY_PASS;
   const proto = process.env.SCRAPER_PROXY_PROTO || 'socks5';
-  const auth = user ? `${user}:${pass || ''}@` : '';
-  return { server: `${proto}://${auth}${host}:${port}` };
+  const server = `${proto}://${host}:${port}`;
+  return user ? { server, username: user, password: pass || '' } : { server };
 }
 
 async function buildTargetUrl(q, provider = 'zillow', requester) {
