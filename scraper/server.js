@@ -1,6 +1,6 @@
 import express from 'express';
 import { chromium } from 'playwright';
-import LRU from 'lru-cache';
+import { LRUCache } from 'lru-cache';
 
 const PORT = process.env.PORT || 3001;
 const AUTH = process.env.SCRAPER_TOKEN || '';
@@ -8,7 +8,7 @@ const MAX_RESULTS = Number(process.env.SCRAPER_MAX_RESULTS || 40);
 const HEADLESS = process.env.HEADLESS !== 'false';
 
 const app = express();
-const cache = new LRU({ max: 100, ttl: 5 * 60 * 1000 });
+const cache = new LRUCache({ max: 100, ttl: 5 * 60 * 1000 });
 
 app.use(express.json());
 
