@@ -517,6 +517,16 @@ func fetchListingsFromAPI(ctx context.Context, baseURL, apiKey string, filters S
 	return payload.Results, nil
 }
 
-func listingsConfigFromEnv() (string, string) {
-	return os.Getenv("LISTINGS_API_BASE"), os.Getenv("LISTINGS_API_KEY")
+// listingsConfigFromEnv selects the first available upstream:
+// 1) SCRAPER_LISTINGS_BASE (unofficial scrapers like Zillow/Redfin via a self-hosted proxy)
+// 2) LISTINGS_API_BASE (official/partner API)
+// Returns base, apiKey, and a label describing the source.
+func listingsConfigFromEnv() (string, string, string) {
+	if base := os.Getenv("SCRAPER_LISTINGS_BASE"); base != "" {
+		return base, os.Getenv("SCRAPER_LISTINGS_KEY"), "scraper"
+	}
+	if base := os.Getenv("LISTINGS_API_BASE"); base != "" {
+		return base, os.Getenv("LISTINGS_API_KEY"), "official"
+	}
+	return "", "", ""
 }

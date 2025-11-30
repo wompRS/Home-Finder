@@ -21,11 +21,13 @@ API: http://localhost:8080/health
 - `VISION_API_KEY` (optional for future vision client)
 - `DATABASE_URL` (defaults via compose to Postgres)
 - `VITE_API_BASE` (frontend ? API URL; set in compose)
-- `LISTINGS_API_BASE` (optional; external listings API base URL, e.g., https://api.your-provider.com)
-- `LISTINGS_API_KEY` (optional; bearer token for the external listings API)
-  - If `LISTINGS_API_BASE` is unset, the API will fall back to in-memory demo listings.
+- `LISTINGS_API_BASE` (optional; official/partner listings API base URL)
+- `LISTINGS_API_KEY` (optional; bearer token for the official listings API)
+- `SCRAPER_LISTINGS_BASE` (optional; unofficial scraper/proxy for Zillow/Redfin-style data you self-host)
+- `SCRAPER_LISTINGS_KEY` (optional; bearer token for the scraper proxy)
+  - Precedence: if `SCRAPER_LISTINGS_BASE` is set, the API uses it; otherwise it uses `LISTINGS_API_BASE`; otherwise it falls back to in-memory demo listings.
 
 ## Next steps
-- Connect to a real listing provider (MLS/aggregator) via `LISTINGS_API_BASE`.
+- Point `SCRAPER_LISTINGS_BASE` to your self-hosted Zillow/Redfin scraper proxy (for personal use) or `LISTINGS_API_BASE` to a partner/MLS feed.
 - Implement ingest + enrichment jobs using the vision API.
 - Harden search params and filters, connect UI filters to API queries.

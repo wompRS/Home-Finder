@@ -47,9 +47,9 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 func searchHandler(w http.ResponseWriter, r *http.Request) {
 	filters := parseFilters(r)
 	source := sampleListings
-	if base, key := listingsConfigFromEnv(); base != "" {
+	if base, key, label := listingsConfigFromEnv(); base != "" {
 		if remote, err := fetchListingsFromAPI(r.Context(), base, key, filters); err != nil {
-			log.Printf("remote listings fetch failed, using demo data: %v", err)
+			log.Printf("%s listings fetch failed, using demo data: %v", label, err)
 		} else if len(remote) > 0 {
 			source = remote
 		}
