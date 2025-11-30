@@ -278,8 +278,10 @@
                 filters.maxPrice = max;
                 e.currentTarget.value = [min, max].filter(Boolean).join('-');
               }} />
-              <input type="range" min="50000" max="2000000" step="50000" value={Number(filters.minPrice) || 0} on:input={(e) => (filters.minPrice = digitsOnly(e.currentTarget.value))} class="range-thumb-mint mt-2" />
-              <input type="range" min="100000" max="3000000" step="50000" value={Number(filters.maxPrice) || 0} on:input={(e) => (filters.maxPrice = digitsOnly(e.currentTarget.value))} class="range-thumb-mint" />
+              <div class="mt-2 flex items-center gap-2">
+                <input type="range" min="50000" max="2000000" step="50000" value={Number(filters.minPrice) || 0} on:input={(e) => (filters.minPrice = digitsOnly(e.currentTarget.value))} class="range-thumb-mint w-1/2" />
+                <input type="range" min="100000" max="3000000" step="50000" value={Number(filters.maxPrice) || 0} on:input={(e) => (filters.maxPrice = digitsOnly(e.currentTarget.value))} class="range-thumb-mint w-1/2" />
+              </div>
             </label>
             <label class="flex flex-col gap-2 text-sm text-sand/80">Beds range
               <input type="text" inputmode="numeric" pattern="[0-9-]*" placeholder="3-5" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" value={[filters.minBeds, filters.maxBeds].filter(Boolean).join('-')} on:input={(e) => {
@@ -288,8 +290,10 @@
                 filters.maxBeds = max;
                 e.currentTarget.value = [min, max].filter(Boolean).join('-');
               }} />
-              <input type="range" min="0" max="10" step="1" value={Number(filters.minBeds) || 0} on:input={(e) => (filters.minBeds = digitsOnly(e.currentTarget.value))} class="range-thumb-mint mt-2" />
-              <input type="range" min="1" max="12" step="1" value={Number(filters.maxBeds) || 0} on:input={(e) => (filters.maxBeds = digitsOnly(e.currentTarget.value))} class="range-thumb-mint" />
+              <div class="mt-2 flex items-center gap-2">
+                <input type="range" min="0" max="10" step="1" value={Number(filters.minBeds) || 0} on:input={(e) => (filters.minBeds = digitsOnly(e.currentTarget.value))} class="range-thumb-mint w-1/2" />
+                <input type="range" min="1" max="12" step="1" value={Number(filters.maxBeds) || 0} on:input={(e) => (filters.maxBeds = digitsOnly(e.currentTarget.value))} class="range-thumb-mint w-1/2" />
+              </div>
             </label>
             <label class="flex flex-col gap-2 text-sm text-sand/80">Baths range
               <input type="text" inputmode="decimal" pattern="[0-9.-]*" placeholder="2-3" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" value={[filters.minBaths, filters.maxBaths].filter(Boolean).join('-')} on:input={(e) => {
@@ -298,8 +302,10 @@
                 filters.maxBaths = max;
                 e.currentTarget.value = [min, max].filter(Boolean).join('-');
               }} />
-              <input type="range" min="0" max="6" step="0.5" value={Number(filters.minBaths) || 0} on:input={(e) => (filters.minBaths = digitsDot(e.currentTarget.value))} class="range-thumb-mint mt-2" />
-              <input type="range" min="0.5" max="8" step="0.5" value={Number(filters.maxBaths) || 0} on:input={(e) => (filters.maxBaths = digitsDot(e.currentTarget.value))} class="range-thumb-mint" />
+              <div class="mt-2 flex items-center gap-2">
+                <input type="range" min="0" max="6" step="0.5" value={Number(filters.minBaths) || 0} on:input={(e) => (filters.minBaths = digitsDot(e.currentTarget.value))} class="range-thumb-mint w-1/2" />
+                <input type="range" min="0.5" max="8" step="0.5" value={Number(filters.maxBaths) || 0} on:input={(e) => (filters.maxBaths = digitsDot(e.currentTarget.value))} class="range-thumb-mint w-1/2" />
+              </div>
             </label>
             <label class="flex flex-col gap-2 text-sm text-sand/80">Sqft range
               <input type="text" inputmode="numeric" pattern="[0-9-]*" placeholder="1400-2400" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" value={[filters.minSqft, filters.maxSqft].filter(Boolean).join('-')} on:input={(e) => {
@@ -308,8 +314,10 @@
                 filters.maxSqft = max;
                 e.currentTarget.value = [min, max].filter(Boolean).join('-');
               }} />
-              <input type="range" min="300" max="6000" step="50" value={Number(filters.minSqft) || 0} on:input={(e) => (filters.minSqft = digitsOnly(e.currentTarget.value))} class="range-thumb-mint mt-2" />
-              <input type="range" min="500" max="10000" step="50" value={Number(filters.maxSqft) || 0} on:input={(e) => (filters.maxSqft = digitsOnly(e.currentTarget.value))} class="range-thumb-mint" />
+              <div class="mt-2 flex items-center gap-2">
+                <input type="range" min="300" max="6000" step="50" value={Number(filters.minSqft) || 0} on:input={(e) => (filters.minSqft = digitsOnly(e.currentTarget.value))} class="range-thumb-mint w-1/2" />
+                <input type="range" min="500" max="10000" step="50" value={Number(filters.maxSqft) || 0} on:input={(e) => (filters.maxSqft = digitsOnly(e.currentTarget.value))} class="range-thumb-mint w-1/2" />
+              </div>
             </label>
             <label class="flex flex-col gap-2 text-sm text-sand/80">Lot sqft range
               <input type="text" inputmode="numeric" pattern="[0-9-]*" placeholder="5000-8000" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" value={[filters.minLotSqft, filters.maxLotSqft].filter(Boolean).join('-')} on:input={(e) => {
@@ -318,8 +326,10 @@
                 filters.maxLotSqft = max;
                 e.currentTarget.value = [min, max].filter(Boolean).join('-');
               }} />
-              <input type="range" min="0" max="43560" step="250" value={Number(filters.minLotSqft) || 0} on:input={(e) => (filters.minLotSqft = digitsOnly(e.currentTarget.value))} class="range-thumb-mint mt-2" />
-              <input type="range" min="1000" max="130680" step="250" value={Number(filters.maxLotSqft) || 0} on:input={(e) => (filters.maxLotSqft = digitsOnly(e.currentTarget.value))} class="range-thumb-mint" />
+              <div class="mt-2 flex items-center gap-2">
+                <input type="range" min="0" max="43560" step="250" value={Number(filters.minLotSqft) || 0} on:input={(e) => (filters.minLotSqft = digitsOnly(e.currentTarget.value))} class="range-thumb-mint w-1/2" />
+                <input type="range" min="1000" max="130680" step="250" value={Number(filters.maxLotSqft) || 0} on:input={(e) => (filters.maxLotSqft = digitsOnly(e.currentTarget.value))} class="range-thumb-mint w-1/2" />
+              </div>
             </label>
             <label class="flex flex-col gap-2 text-sm text-sand/80">Year built range
               <input type="text" inputmode="numeric" pattern="[0-9-]*" placeholder="1990-2024" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" value={[filters.minYear, filters.maxYear].filter(Boolean).join('-')} on:input={(e) => {
@@ -328,8 +338,10 @@
                 filters.maxYear = max ? max.slice(0, 4) : '';
                 e.currentTarget.value = [filters.minYear, filters.maxYear].filter(Boolean).join('-');
               }} />
-              <input type="range" min="1900" max="2025" step="1" value={Number(filters.minYear) || 1900} on:input={(e) => (filters.minYear = digitsOnly(e.currentTarget.value, 4))} class="range-thumb-mint mt-2" />
-              <input type="range" min="1900" max="2025" step="1" value={Number(filters.maxYear) || 2025} on:input={(e) => (filters.maxYear = digitsOnly(e.currentTarget.value, 4))} class="range-thumb-mint" />
+              <div class="mt-2 flex items-center gap-2">
+                <input type="range" min="1900" max="2025" step="1" value={Number(filters.minYear) || 1900} on:input={(e) => (filters.minYear = digitsOnly(e.currentTarget.value, 4))} class="range-thumb-mint w-1/2" />
+                <input type="range" min="1900" max="2025" step="1" value={Number(filters.maxYear) || 2025} on:input={(e) => (filters.maxYear = digitsOnly(e.currentTarget.value, 4))} class="range-thumb-mint w-1/2" />
+              </div>
             </label>
             <label class="flex flex-col gap-2 text-sm text-sand/80">Stories (min)
               <input type="number" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="1" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" bind:value={filters.minStories} on:input={(e) => enforceDigits(e, (v) => (filters.minStories = v))} />
@@ -344,8 +356,10 @@
                 filters.maxHOA = max;
                 e.currentTarget.value = [min, max].filter(Boolean).join('-');
               }} />
-              <input type="range" min="0" max="1500" step="25" value={Number(filters.minHOA) || 0} on:input={(e) => (filters.minHOA = digitsOnly(e.currentTarget.value))} class="range-thumb-mint mt-2" />
-              <input type="range" min="0" max="2500" step="25" value={Number(filters.maxHOA) || 0} on:input={(e) => (filters.maxHOA = digitsOnly(e.currentTarget.value))} class="range-thumb-mint" />
+              <div class="mt-2 flex items-center gap-2">
+                <input type="range" min="0" max="1500" step="25" value={Number(filters.minHOA) || 0} on:input={(e) => (filters.minHOA = digitsOnly(e.currentTarget.value))} class="range-thumb-mint w-1/2" />
+                <input type="range" min="0" max="2500" step="25" value={Number(filters.maxHOA) || 0} on:input={(e) => (filters.maxHOA = digitsOnly(e.currentTarget.value))} class="range-thumb-mint w-1/2" />
+              </div>
             </label>
             <div class="md:col-span-2">
               <p class="mb-2 text-sm text-sand/80">Property types</p>
