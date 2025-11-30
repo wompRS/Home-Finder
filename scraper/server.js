@@ -32,7 +32,7 @@ app.get('/search', async (req, res) => {
   if (cache.has(key)) return res.json({ results: cache.get(key), cached: true });
 
   const provider = normalizeProvider(req.query.provider);
-  const targetUrl = buildTargetUrl(req.query, provider);
+  const targetUrl = await buildTargetUrl(req.query, provider);
   if (!targetUrl) return res.status(400).json({ error: 'missing location (city/state or zip or q)' });
 
   try {
@@ -81,15 +81,17 @@ function normalizeProvider(raw) {
   return 'zillow';
 }
 
-function buildTargetUrl(q, provider = 'zillow') {
+async function buildTargetUrl(q, provider = 'zillow') {
   const city = (q.city || '').trim();
   const state = (q.state || '').trim();
   const zip = (q.zip || '').trim();
   const query = (q.q || '').trim();
 
   if (provider === 'redfin') {
+    const region = await lookupRedfinRegion(city, state, zip || query);
+    if (region?.url) return region.url;
     if (zip) return `https://www.redfin.com/zipcode/${encodeURIComponent(zip)}`;
-    if (city && state) return `https://www.redfin.com/city/${encodeURIComponent(state)}/${encodeURIComponent(city)}`;
+    if (city && state) return `https://www.redfin.com/stingray/do/location-autocomplete?location=${encodeURIComponent(`${city}, ${state}`)}`;
     if (query) return `https://www.redfin.com/stingray/do/location-autocomplete?location=${encodeURIComponent(query)}`;
   }
 
@@ -104,6 +106,29 @@ function buildTargetUrl(q, provider = 'zillow') {
   if (city && state) return `https://www.zillow.com/homes/${encodeURIComponent(city)}-${encodeURIComponent(state)}/`;
   if (query) return `https://www.zillow.com/homes/${encodeURIComponent(query)}/`;
   return '';
+}
+
+async function lookupRedfinRegion(city, state, altQuery) {
+  const q = [city, state].filter(Boolean).join(', ') || altQuery;
+  if (!q) return null;
+  try {
+    const url = `https://www.redfin.com/stingray/do/location-autocomplete?location=${encodeURIComponent(q)}&start=0&count=10&v=2`;
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': USER_AGENT,
+        Referer: 'https://www.redfin.com/',
+      },
+    });
+    if (!res.ok) return null;
+    const text = await res.text();
+    const json = JSON.parse(text);
+    const first = json?.payload?.sections?.flatMap((s) => s.rows || []).find((r) => r.id && r.url);
+    if (!first) return null;
+    return { id: first.id, url: `https://www.redfin.com${first.url}` };
+  } catch (err) {
+    console.warn('[redfin] autocomplete failed', err.message);
+    return null;
+  }
 }
 
 async function autoScroll(page, passes = 2) {
