@@ -41,8 +41,8 @@
   ];
 
   const emptyFilters = () => ({
-    minPrice: '',
-    maxPrice: '',
+    minPrice: '50000',
+    maxPrice: '3000000',
     minBeds: '',
     maxBeds: '',
     minBaths: '',
@@ -216,6 +216,16 @@
     return `$${Number(val).toLocaleString()}`;
   };
 
+  const priceRangePct = () => {
+    const minBound = 50000;
+    const maxBound = 3000000;
+    const min = Math.max(minBound, Math.min(maxBound, Number(filters.minPrice || minBound)));
+    const max = Math.max(minBound, Math.min(maxBound, Number(filters.maxPrice || maxBound)));
+    const start = ((min - minBound) / (maxBound - minBound)) * 100;
+    const end = ((max - minBound) / (maxBound - minBound)) * 100;
+    return { start, end };
+  };
+
   function addTag(tag: string) {
     const current = filters.tags.split(',').map((t) => t.trim()).filter(Boolean);
     if (!current.includes(tag)) {
@@ -299,9 +309,26 @@
                 e.currentTarget.value = [min, max].filter(Boolean).join('-');
               }} />
               <div class="mt-2 dual-slider">
-                <div class="dual-slider__track dual-slider__track--bars"></div>
-                <input type="range" min="50000" max="2000000" step="50000" value={Number(filters.minPrice) || 0} on:input={(e) => setRangeValue('minPrice', 'maxPrice', digitsOnly(e.currentTarget.value), true)} class="dual-slider__input range-thumb-mint" />
-                <input type="range" min="100000" max="3000000" step="50000" value={Number(filters.maxPrice) || 0} on:input={(e) => setRangeValue('minPrice', 'maxPrice', digitsOnly(e.currentTarget.value), false)} class="dual-slider__input range-thumb-mint" />
+                <div class="dual-slider__track"></div>
+                <div class="dual-slider__fill" style={`left: ${priceRangePct().start}%; right: ${100 - priceRangePct().end}%;`}></div>
+                <input
+                  type="range"
+                  min="50000"
+                  max="3000000"
+                  step="50000"
+                  value={Number(filters.minPrice) || 50000}
+                  on:input={(e) => setRangeValue('minPrice', 'maxPrice', digitsOnly(e.currentTarget.value), true)}
+                  class="dual-slider__input range-thumb-mint"
+                />
+                <input
+                  type="range"
+                  min="50000"
+                  max="3000000"
+                  step="50000"
+                  value={Number(filters.maxPrice) || 3000000}
+                  on:input={(e) => setRangeValue('minPrice', 'maxPrice', digitsOnly(e.currentTarget.value), false)}
+                  class="dual-slider__input range-thumb-mint"
+                />
               </div>
               <div class="flex justify-between text-xs text-sand/60">
                 <span>{formatMoney(filters.minPrice) || '$50k'}</span>
