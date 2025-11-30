@@ -51,6 +51,18 @@ input[type='checkbox'] {
   border-radius: 999px;
 }
 
+.dual-slider__track--bars {
+  background:
+    repeating-linear-gradient(
+      to right,
+      rgba(255,255,255,0.7) 0px,
+      rgba(255,255,255,0.7) 2px,
+      transparent 2px,
+      transparent 8px
+    );
+  mask-image: linear-gradient(to right, rgba(0,0,0,0.2), rgba(0,0,0,1) 15%, rgba(0,0,0,1) 70%, rgba(0,0,0,0.2));
+}
+
 .dual-slider__input {
   position: absolute;
   top: 0;

@@ -211,6 +211,11 @@
     }
   };
 
+  const formatMoney = (val: string) => {
+    if (!val) return '';
+    return `$${Number(val).toLocaleString()}`;
+  };
+
   function addTag(tag: string) {
     const current = filters.tags.split(',').map((t) => t.trim()).filter(Boolean);
     if (!current.includes(tag)) {
@@ -293,9 +298,14 @@
                 filters.maxPrice = max;
                 e.currentTarget.value = [min, max].filter(Boolean).join('-');
               }} />
-              <div class="mt-2 flex items-center gap-2">
-                <input type="range" min="50000" max="2000000" step="50000" value={Number(filters.minPrice) || 0} on:input={(e) => (filters.minPrice = digitsOnly(e.currentTarget.value))} class="range-thumb-mint w-1/2" />
-                <input type="range" min="100000" max="3000000" step="50000" value={Number(filters.maxPrice) || 0} on:input={(e) => (filters.maxPrice = digitsOnly(e.currentTarget.value))} class="range-thumb-mint w-1/2" />
+              <div class="mt-2 dual-slider">
+                <div class="dual-slider__track dual-slider__track--bars"></div>
+                <input type="range" min="50000" max="2000000" step="50000" value={Number(filters.minPrice) || 0} on:input={(e) => setRangeValue('minPrice', 'maxPrice', digitsOnly(e.currentTarget.value), true)} class="dual-slider__input range-thumb-mint" />
+                <input type="range" min="100000" max="3000000" step="50000" value={Number(filters.maxPrice) || 0} on:input={(e) => setRangeValue('minPrice', 'maxPrice', digitsOnly(e.currentTarget.value), false)} class="dual-slider__input range-thumb-mint" />
+              </div>
+              <div class="flex justify-between text-xs text-sand/60">
+                <span>{formatMoney(filters.minPrice) || '$50k'}</span>
+                <span>{formatMoney(filters.maxPrice) || '$3M'}</span>
               </div>
             </label>
             <div class="md:col-span-1 flex flex-col gap-2 text-sm text-sand/80">
