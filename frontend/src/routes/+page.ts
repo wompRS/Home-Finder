@@ -15,6 +15,7 @@ export type Listing = {
   propertyType: string;
   photoUrl: string;
   tags: string[];
+  visionTags?: string[];
   source: string;
 };
 

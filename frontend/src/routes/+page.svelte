@@ -19,7 +19,8 @@
     state: '',
     zip: '',
     query: '',
-    minSqft: ''
+    minSqft: '',
+    useVision: true
   };
 
   const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8080';
@@ -37,6 +38,7 @@
     if (filters.minSqft) chips.push(`${filters.minSqft}+ sqft`);
     if (filters.tags) chips.push(`tags: ${filters.tags}`);
     if (filters.query) chips.push(`search: ${filters.query}`);
+    if (filters.useVision) chips.push('AI image verification');
     return chips;
   };
 
@@ -53,6 +55,7 @@
     if (filters.zip) params.set('zip', filters.zip);
     if (filters.query) params.set('q', filters.query);
     if (filters.minSqft) params.set('min_sqft', filters.minSqft);
+    if (filters.useVision) params.set('use_vision', '1');
     return params.toString();
   };
 
@@ -89,7 +92,7 @@
           </h1>
           <p class="text-lg text-sand/80">
             Describe what you want—price, beds, type, location, must-have features—and we’ll surface listings that
-            actually fit. We auto-tag photos when text is sparse, no uploads needed.
+            actually fit. Toggle AI vision to verify obvious visual features (garage type, pool, yard, stories, etc.).
           </p>
           <div class="flex gap-3 text-sm text-sand/70">
             <span class="flex items-center gap-2 rounded-full border border-mint/30 bg-mint/10 px-3 py-1 text-mint">AI vision tags</span>
@@ -117,7 +120,8 @@
                   state: '',
                   zip: '',
                   query: '',
-                  minSqft: ''
+                  minSqft: '',
+                  useVision: true
                 })}
             >
               Reset
@@ -218,7 +222,7 @@
               Must-have tags (comma separated)
               <input
                 type="text"
-                placeholder="garage, natural light, balcony"
+                placeholder="rv garage, pool, fenced yard"
                 class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none"
                 bind:value={filters.tags}
               />
@@ -232,6 +236,18 @@
                 bind:value={filters.query}
               />
             </label>
+            <div class="md:col-span-2 flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-4 py-3">
+              <div>
+                <p class="text-sm font-semibold text-white">Use AI image verification</p>
+                <p class="text-xs text-sand/60">
+                  When on, we verify obvious visual features (pool, RV garage, stories, yard type, balcony) against photos.
+                </p>
+              </div>
+              <label class="inline-flex cursor-pointer items-center gap-2 text-sm text-sand/80">
+                <input type="checkbox" class="h-5 w-5 accent-mint" bind:checked={filters.useVision} />
+                <span>{filters.useVision ? 'On' : 'Off'}</span>
+              </label>
+            </div>
           </div>
           <div class="mt-5 flex flex-wrap items-center justify-between gap-3">
             <div class="flex flex-wrap gap-2">
@@ -264,7 +280,7 @@
       <div>
         <p class="text-xs uppercase tracking-[0.2em] text-mint">Results</p>
         <h2 class="font-heading text-2xl font-semibold text-white">Handpicked matches</h2>
-        <p class="text-sand/60 text-sm">Run search after adjusting filters. Tags use AI from listing photos when needed.</p>
+        <p class="text-sand/60 text-sm">Run search after adjusting filters. Vision toggle verifies obvious visual features.</p>
       </div>
       <div class="flex items-center gap-3 text-xs text-sand/60">
         <span class="rounded-full border border-white/10 bg-white/5 px-3 py-1">Live data (demo)</span>
@@ -293,9 +309,11 @@
               <div class="absolute left-3 top-3 flex items-center gap-2 rounded-full bg-charcoal/80 px-3 py-1 text-xs font-semibold text-mint">
                 <span>{listing.propertyType}</span>
               </div>
-              <div class="absolute right-3 top-3 rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-charcoal">
-                AI tags
-              </div>
+              {#if filters.useVision}
+                <div class="absolute right-3 top-3 rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-charcoal">
+                  AI tags
+                </div>
+              {/if}
             </div>
             <div class="space-y-3 p-4">
               <div class="flex items-start justify-between">
@@ -313,6 +331,11 @@
                 {#each listing.tags as tag}
                   <span class="rounded-full bg-charcoal/80 px-3 py-1 text-xs text-sand/80 ring-1 ring-white/5">{tag}</span>
                 {/each}
+                {#if filters.useVision && listing.visionTags}
+                  {#each listing.visionTags as tag}
+                    <span class="rounded-full bg-mint/15 px-3 py-1 text-xs text-mint ring-1 ring-mint/40">{tag}</span>
+                  {/each}
+                {/if}
               </div>
               <div class="flex items-center justify-between text-xs text-sand/60">
                 <span>Source: {listing.source}</span>

@@ -102,5 +102,6 @@ func parseFilters(r *http.Request) SearchFilters {
 		State:        q.Get("state"),
 		Zip:          q.Get("zip"),
 		Query:        q.Get("q"),
+		UseVision:    boolFromString(q.Get("use_vision")),
 	}
 }

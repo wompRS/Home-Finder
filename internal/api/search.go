@@ -17,6 +17,7 @@ type SearchFilters struct {
 	State        string
 	Zip          string
 	Query        string
+	UseVision    bool
 }
 
 // In-memory demo data; swap out with provider/DB later.
@@ -36,6 +37,7 @@ var sampleListings = []types.Listing{
 		PropertyType: "Condo",
 		PhotoURL:     "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1600&q=80",
 		Tags:         []string{"open layout", "city view", "hardwood", "floor-to-ceiling windows", "modern kitchen"},
+		VisionTags:   []string{"city view", "open layout", "modern kitchen", "loft"},
 		Source:       "demo",
 	},
 	{
@@ -52,7 +54,8 @@ var sampleListings = []types.Listing{
 		LotSqft:      4000,
 		PropertyType: "Single Family",
 		PhotoURL:     "https://images.unsplash.com/photo-1616594039964-c2c5bea0b2f9?auto=format&fit=crop&w=1600&q=80",
-		Tags:         []string{"front porch", "garden", "detached garage", "original trim", "updated kitchen"},
+		Tags:         []string{"front porch", "garden", "detached garage", "original trim", "updated kitchen", "rv parking"},
+		VisionTags:   []string{"front porch", "rv garage", "two-story", "garden", "detached garage"},
 		Source:       "demo",
 	},
 	{
@@ -70,6 +73,7 @@ var sampleListings = []types.Listing{
 		PropertyType: "Townhouse",
 		PhotoURL:     "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1600&q=80",
 		Tags:         []string{"patio", "attached garage", "natural light", "mountain glimpse", "two-story"},
+		VisionTags:   []string{"patio", "two-story", "attached garage"},
 		Source:       "demo",
 	},
 	{
@@ -87,6 +91,7 @@ var sampleListings = []types.Listing{
 		PropertyType: "Condo",
 		PhotoURL:     "https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=1600&q=80",
 		Tags:         []string{"lake view", "balcony", "doorman", "fitness center"},
+		VisionTags:   []string{"lake view", "balcony", "high-rise"},
 		Source:       "demo",
 	},
 	{
@@ -104,6 +109,7 @@ var sampleListings = []types.Listing{
 		PropertyType: "Single Family",
 		PhotoURL:     "https://images.unsplash.com/photo-1501127122-f385ca6ddd9d?auto=format&fit=crop&w=1600&q=80",
 		Tags:         []string{"back deck", "fenced yard", "mature trees", "carport"},
+		VisionTags:   []string{"single story", "back yard", "deck", "fenced yard", "carport"},
 		Source:       "demo",
 	},
 }
@@ -126,7 +132,11 @@ func filterListings(filters SearchFilters) []types.Listing {
 		if filters.PropertyType != "" && !strings.EqualFold(l.PropertyType, filters.PropertyType) {
 			continue
 		}
-		if len(filters.Tags) > 0 && !hasAllTags(l.Tags, filters.Tags) {
+		tagPool := l.Tags
+		if filters.UseVision && len(l.VisionTags) > 0 {
+			tagPool = append(tagPool, l.VisionTags...)
+		}
+		if len(filters.Tags) > 0 && !hasAllTags(tagPool, filters.Tags) {
 			continue
 		}
 		if filters.City != "" && !strings.Contains(strings.ToLower(l.City), strings.ToLower(filters.City)) {
@@ -160,6 +170,15 @@ func hasAllTags(listingTags []string, required []string) bool {
 		}
 	}
 	return true
+}
+
+func boolFromString(v string) bool {
+	switch strings.ToLower(strings.TrimSpace(v)) {
+	case "1", "true", "yes", "on":
+		return true
+	default:
+		return false
+	}
 }
 
 func matchesQuery(l types.Listing, q string) bool {

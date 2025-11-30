@@ -15,5 +15,6 @@ type Listing struct {
 	PropertyType string   `json:"propertyType"`
 	PhotoURL     string   `json:"photoUrl"`
 	Tags         []string `json:"tags"`
+	VisionTags   []string `json:"visionTags,omitempty"`
 	Source       string   `json:"source"`
 }
