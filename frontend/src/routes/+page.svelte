@@ -280,12 +280,26 @@
 
           <div class="grid gap-4 md:grid-cols-2">
             <label class="flex flex-col gap-2 text-sm text-sand/80">Price range
-              <input type="text" inputmode="numeric" pattern="[0-9-]*" placeholder="450000-1200000" class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none" value={[filters.minPrice, filters.maxPrice].filter(Boolean).join('-')} on:input={(e) => {
-                const { min, max } = parseRangeInt(e.currentTarget.value);
-                filters.minPrice = min;
-                filters.maxPrice = max;
-                e.currentTarget.value = [min, max].filter(Boolean).join('-');
-              }} />
+              <div class="grid grid-cols-2 gap-2">
+                <input
+                  type="text"
+                  inputmode="numeric"
+                  pattern="[0-9]*"
+                  placeholder="50000"
+                  class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none"
+                  bind:value={filters.minPrice}
+                  on:input={(e) => enforceDigits(e, (v) => (filters.minPrice = v))}
+                />
+                <input
+                  type="text"
+                  inputmode="numeric"
+                  pattern="[0-9]*"
+                  placeholder="3000000"
+                  class="rounded-lg border border-white/10 bg-charcoal px-3 py-2 text-white focus:border-mint focus:outline-none"
+                  bind:value={filters.maxPrice}
+                  on:input={(e) => enforceDigits(e, (v) => (filters.maxPrice = v))}
+                />
+              </div>
               <div class="flex justify-between text-xs text-sand/60">
                 <span>{formatMoney(filters.minPrice) || '$50k'}</span>
                 <span>{formatMoney(filters.maxPrice) || '$3M'}</span>
